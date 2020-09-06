@@ -6,7 +6,7 @@
     {
       "label": "build",
       "type": "shell",
-      "command": "nesasm game.asm",
+      "command": "nesasm main.asm",
       "problemMatcher": [],
       "group": {
         "kind": "build",
