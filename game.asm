@@ -50,7 +50,7 @@ clrmem:
   STA $0200, x
   INX
   BNE clrmem
-  JSR vblankwait              ; Second VBLANK, PPU is ready now
+  JSR vblankwait              ; Second VBLANK, PPU is now ready
 
 LoadPalettes:
   LDA $2002                   ; read PPU status to reset the high/low latch
@@ -72,7 +72,7 @@ LoadSpritesLoop:
   LDA sprites, x              ; load data from address (sprites +  x)
   STA $0200, x                ; store into RAM address ($0200 + x)
   INX
-  CPX #$10                    ; Compare X to hex $10, decimal 16
+  CPX #$18                    ; Compare X to hex $18, decimal 24
   BNE LoadSpritesLoop         ; Branch to LoadSpritesLoop if loop not done
 
 LoadBackground:
@@ -235,11 +235,17 @@ UpdateSpritePos:
   ADC #$08                    ; Add 1 tile
   STA $0208                   ; Sprite 2 y
   STA $020C                   ; Sprite 3 y
+  CLC
+  ADC #$08                    ; Add 1 more tile
+  STA $0210                   ; Sprite 4 y
+  STA $0214                   ; Sprite 5 y
   ; Sprite x
   LDA $0203                   ; Sprite 0 x
   STA $020B                   ; Sprite 2 x
+  STA $0213                   ; Sprite 4 x
   CLC
   ADC #$08                    ; Add 1 tile
   STA $0207                   ; Sprite 1 x
   STA $020F                   ; Sprite 3 x
+  STA $0217                   ; Sprite 5 x
   RTS

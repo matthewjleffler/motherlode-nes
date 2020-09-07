@@ -13,7 +13,6 @@
   .include "game.asm"         ; Main program
 
   .bank 1
-  .org $E000                  ; Align background so the lower address is $00
   .include "tables.asm"       ; Tables, attributes, palettes, sprites
 
   .org $FFFA                  ; First of three vectors start here
@@ -23,4 +22,4 @@
 
   .bank 2
   .org $0000
-  .incbin "mario.chr"         ; Includes 8KB graphics file
+  .incbin "motherlode.chr"    ; Includes 8KB graphics file
