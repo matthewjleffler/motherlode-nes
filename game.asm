@@ -72,7 +72,7 @@ LoadSpritesLoop:
   LDA sprites, x              ; load data from address (sprites +  x)
   STA $0200, x                ; store into RAM address ($0200 + x)
   INX
-  CPX #$18                    ; Compare X to hex $18, decimal 24
+  CPX #$28                    ; Compare X to hex $18, decimal 28
   BNE LoadSpritesLoop         ; Branch to LoadSpritesLoop if loop not done
 
 LoadBackground:
@@ -126,12 +126,20 @@ NMI:
 ; Game Loop
 
 GameLoop:
+  JSR CountAnimation
   JSR ReadController1
   JSR TestMoveLeft
   JSR TestMoveRight
   JSR TestMoveUp
   JSR TestMoveDown
-  JSR UpdateSpritePos
+  JSR UpdatePlayerSprites
+  JSR UpdateBullets
+  RTS
+
+CountAnimation:
+  LDX animTick
+  INX
+  STX animTick
   RTS
 
 ; Controller reading
@@ -205,11 +213,11 @@ AddSpeed:
   BNE AddSpeedFast
 ; AddSpeedSlow
   TXA                         ; Move sprite location back to A
-  ADC #SLOW                   ; Add slow
+  ADC #SPDSLOW                ; Add slow
   RTS
 AddSpeedFast:
   TXA                         ; Move sprite location back to A
-  ADC #FAST                   ; Add fast
+  ADC #SPDFAST                ; Add fast
   RTS
 
 SubSpeed:
@@ -220,32 +228,144 @@ SubSpeed:
   BNE SubSpeedFast
 ; SubSpeedSlow
   TXA                         ; Move sprite location back to A
-  SBC #SLOW                   ; Sub slow
+  SBC #SPDSLOW                ; Sub slow
   RTS
 SubSpeedFast:
   TXA                         ; Move sprite location back to A
-  SBC #FAST                   ; Sub fast
+  SBC #SPDFAST                ; Sub fast
   RTS
 
-UpdateSpritePos:
+UpdatePlayerSprites:
   ; Sprite y
-  LDA $0200                   ; Sprite 0 y
-  STA $0204                   ; Sprite 1 y
+  LDA PLAYER0                 ; Sprite 0 y
+  STA PLAYER1                 ; Sprite 1 y
   CLC
-  ADC #$08                    ; Add 1 tile
-  STA $0208                   ; Sprite 2 y
-  STA $020C                   ; Sprite 3 y
-  CLC
-  ADC #$08                    ; Add 1 more tile
-  STA $0210                   ; Sprite 4 y
-  STA $0214                   ; Sprite 5 y
+  ADC #TILEW                  ; Add 1 tile
+  STA PLAYER2                 ; Sprite 2 y
+  STA PLAYER3                 ; Sprite 3 y
+  ADC #TILEW                  ; Add 1 more tile
+  STA PLAYER4                 ; Sprite 4 y
+  STA PLAYER5                 ; Sprite 5 y
   ; Sprite x
-  LDA $0203                   ; Sprite 0 x
-  STA $020B                   ; Sprite 2 x
-  STA $0213                   ; Sprite 4 x
+  LDX #SPRITEX                ; x coord address offset
+  LDA PLAYER0, X              ; Sprite 0 x
+  STA PLAYER2, X              ; Sprite 2 x
+  STA PLAYER4, X              ; Sprite 4 x
   CLC
-  ADC #$08                    ; Add 1 tile
-  STA $0207                   ; Sprite 1 x
-  STA $020F                   ; Sprite 3 x
-  STA $0217                   ; Sprite 5 x
+  ADC #TILEW                  ; Add 1 tile
+  STA PLAYER1, X              ; Sprite 1 x
+  STA PLAYER3, X              ; Sprite 3 x
+  STA PLAYER5, X              ; Sprite 5 x
+  RTS
+
+UpdateBullets:
+  LDA #%00000011              ; Animate every other tick
+  AND animTick
+  BEQ UpdateBulletAnim
+  JSR UpdateBulletPos
+  RTS
+UpdateBulletAnim:
+  ; Update anim
+  LDX bulletAnim0             ; Increment bullet anim
+  INX
+  STX bulletAnim0
+  LDX #SPRITEATT              ; Sprite attrib offset in X
+  LDY #SPRITETIL              ; Sprite tile offset in Y
+  ; Bullet0
+  LDA #BULLSTATE              ; Compare the first two bits
+  AND bulletAnim0
+  CMP #$03                    ; State3
+  BEQ BulletState3
+  CMP #$02                    ; State2
+  BEQ BulletState2
+  CMP #$01                    ; State1
+  BEQ BulletState1
+  ; TODO move down the line for other bullets
+; BulletState0
+  ; Sprite0, 4x
+  LDA #BULLFRAME0
+  STA BULLET00, Y             ; Store tiles
+  STA BULLET01, Y
+  STA BULLET02, Y
+  STA BULLET03, Y
+  ; Flip on 1,2,3
+  JSR BulletNoFlip
+  RTS
+BulletState1:
+  ; Sprite1, Sprite2
+  ; Sprite2, Sprite1
+  LDA #BULLFRAME1             ; Bullet1
+  STA BULLET00, Y             ; Store tiles
+  STA BULLET03, Y
+  LDA #BULLFRAME2             ; Bullet2
+  STA BULLET01, Y
+  STA BULLET02, Y
+  ; Flip on bottom
+  LDA #BULLETNOFL
+  STA BULLET00, X
+  STA BULLET01, X
+  LDA #BULLETFLXY
+  STA BULLET02, X
+  STA BULLET03, X
+  RTS
+BulletState2:
+  ; Sprite3, 4x
+  LDA #BULLFRAME3             ; Bullet3
+  STA BULLET00, Y
+  STA BULLET01, Y
+  STA BULLET02, Y
+  STA BULLET03, Y
+  ; Flip on 1,2,3
+  JSR BulletNoFlip
+  RTS
+BulletState3:
+  ; Sprite1, Sprite2
+  ; Sprite2, Sprite1
+  LDA #BULLFRAME2             ; Bullet2
+  STA BULLET00, Y             ; Store tiles
+  STA BULLET03, Y
+  LDA #BULLFRAME1             ; Bullet1
+  STA BULLET01, Y
+  STA BULLET02, Y
+  ; Flip x top, flip y bottom
+  LDA #BULLETFLX
+  STA BULLET00, X
+  STA BULLET01, X
+  LDA #BULLETFLY
+  STA BULLET02, X
+  STA BULLET03, X
+  RTS
+
+BulletNoFlip:
+  LDA #BULLETNOFL
+  STA BULLET00, X
+  LDA #BULLETFLX
+  STA BULLET01, X
+  LDA #BULLETFLY
+  STA BULLET02, X
+  LDA #BULLETFLXY
+  STA BULLET03, X
+  RTS
+
+UpdateBulletPos:
+  ; Bullet Y
+  LDA BULLET00
+  CLC
+  ADC #SPDBULLET
+  STA BULLET00
+  STA BULLET01
+  ADC #TILEW
+  STA BULLET02
+  STA BULLET03
+  ; BulletX
+  LDX #SPRITEX
+  LDA BULLET00, X
+  SEC
+  SBC #SPDSLOW
+  STA BULLET00, X
+  STA BULLET02, X
+  CLC
+  ADC #TILEW
+  STA BULLET01, X
+  STA BULLET03, X
   RTS
