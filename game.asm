@@ -63,18 +63,16 @@ LoadPalettesLoop:
   LDA palette, x              ; load data from address (palette + x)
   STA $2007                   ; write to PPU
   INX
-  CPX #$20                    ; Copying 16 sprite + 16 background palette bytes
+  CPX #$20                    ; Size of all pallete bytes
   BNE LoadPalettesLoop        ; Branch to LoadPalettesLoop if loop not done
 
 LoadSprites:
-  LDA #SPRITEHI
-  STA spriteLayoutAddressHi   ; Set the high spriteLayoutAddress, doesn't change
   LDX #$00                    ; start at 0
 LoadSpritesLoop:
   LDA sprites, x              ; load data from address (sprites +  x)
   STA $0200, x                ; store into RAM address ($0200 + x)
   INX
-  CPX #$28                    ; Compare X to hex $18, decimal 28
+  CPX #$38                    ; Size of all sprites
   BNE LoadSpritesLoop         ; Branch to LoadSpritesLoop if loop not done
 
 LoadBackground:
@@ -239,27 +237,37 @@ SubSpeedFast:
 
 UpdatePlayerSprites:
   LDX #$03                    ; Player is 3 tiles high
+  LDA #SPRITEHI               ; Sprite hi bites
+  STA pointerHi
   LDA #PLAYER                 ; Player low bytes
-  STA spriteLayoutAddressLo
+  STA pointerLo
   JSR UpdateSpriteLayout
   RTS
 
 UpdateBullets:
-  LDA #%00000011              ; Animate every other tick
+  LDA #SPRITEHI               ; point the high pointer at SPRITEHI for bullets
+  STA pointerHi
+  LDA #%00000011
   AND animTick
-  BEQ UpdateBulletAnim
+  BEQ UpdateBulletAnim        ; Animate every 4 ticks, if the AND is 0
   JSR UpdateBulletPos
   RTS
+
 UpdateBulletAnim:
-  ; Update anim
-  LDX bulletAnim0             ; Increment bullet anim
+  LDX bulletAnim              ; Increment bullet anim
   INX
-  STX bulletAnim0
-  LDX #SPRITEATT              ; Sprite attrib offset in X
-  LDY #SPRITETIL              ; Sprite tile offset in Y
+  STX bulletAnim
+  LDA #BULLET0                ; point the low pointer at the first bullet
+  STA pointerLo
+UpdateBulletAnimLoop:
+  JSR UpdateSingleBullet
+  ; TODO loop to other bullets
+  RTS
+
+UpdateSingleBullet:
   ; Bullet0
   LDA #BULLSTATE              ; Compare the first two bits
-  AND bulletAnim0
+  AND bulletAnim
   CMP #$03                    ; State3
   BEQ BulletState3
   CMP #$02                    ; State2
@@ -267,123 +275,183 @@ UpdateBulletAnim:
   CMP #$01                    ; State1
   BEQ BulletState1
   ; TODO move down the line for other bullets
-; BulletState0
-  ; Sprite0, 4x
-  LDA #BULLFRAME0
-  STA BULLET00, Y             ; Store tiles
-  STA BULLET01, Y
-  STA BULLET02, Y
-  STA BULLET03, Y
-  ; Flip on 1,2,3
-  JSR BulletNoFlip
-  RTS
+BulletState0:
+  JMP AssignBulletState0
 BulletState1:
-  ; Sprite1, Sprite2
-  ; Sprite2, Sprite1
-  LDA #BULLFRAME1             ; Bullet1
-  STA BULLET00, Y             ; Store tiles
-  STA BULLET03, Y
-  LDA #BULLFRAME2             ; Bullet2
-  STA BULLET01, Y
-  STA BULLET02, Y
-  ; Flip on bottom
-  LDA #BULLETNOFL
-  STA BULLET00, X
-  STA BULLET01, X
-  LDA #BULLETFLXY
-  STA BULLET02, X
-  STA BULLET03, X
-  RTS
+  JMP AssignBulletState1
 BulletState2:
-  ; Sprite3, 4x
-  LDA #BULLFRAME3             ; Bullet3
-  STA BULLET00, Y
-  STA BULLET01, Y
-  STA BULLET02, Y
-  STA BULLET03, Y
-  ; Flip on 1,2,3
-  JSR BulletNoFlip
-  RTS
+  JMP AssignBulletState2
 BulletState3:
-  ; Sprite1, Sprite2
-  ; Sprite2, Sprite1
-  LDA #BULLFRAME2             ; Bullet2
-  STA BULLET00, Y             ; Store tiles
-  STA BULLET03, Y
-  LDA #BULLFRAME1             ; Bullet1
-  STA BULLET01, Y
-  STA BULLET02, Y
-  ; Flip x top, flip y bottom
-  LDA #BULLETFLX
-  STA BULLET00, X
-  STA BULLET01, X
-  LDA #BULLETFLY
-  STA BULLET02, X
-  STA BULLET03, X
+  JMP AssignBulletState3
+
+AssignBulletState0:
+  LDA #BULLFRAME0             ; Assign bullet frame 0 to all tiles
+  STA bulletFrame
+  LDA #BULLETNOFL             ; Top left, no flip
+  STA bulletAttr
+  LDX #$01
+  LDA #BULLFRAME0
+  STA bulletFrame, X
+  LDA #BULLETFLX              ; Top right, flip x
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME0
+  STA bulletFrame, X
+  LDA #BULLETFLY              ; Bottom left, flip y
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME0
+  STA bulletFrame, X
+  LDA #BULLETFLXY             ; Bottom right, flip x and y
+  STA bulletAttr, X
+  JSR ApplyBulletSettings
   RTS
 
-BulletNoFlip:
-  LDA #BULLETNOFL
-  STA BULLET00, X
-  LDA #BULLETFLX
-  STA BULLET01, X
-  LDA #BULLETFLY
-  STA BULLET02, X
-  LDA #BULLETFLXY
-  STA BULLET03, X
+AssignBulletState1:
+  LDA #BULLFRAME1
+  STA bulletFrame
+  LDA #BULLETNOFL             ; Top left, no flip
+  STA bulletAttr
+  LDX #$01
+  LDA #BULLFRAME2
+  STA bulletFrame, X
+  LDA #BULLETNOFL             ; Top right, no flip
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME2
+  STA bulletFrame, X
+  LDA #BULLETFLXY             ; Bottom left, flip xy
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME1
+  STA bulletFrame, X
+  LDA #BULLETFLXY             ; Bottom right, flip xy
+  STA bulletAttr, X
+  JSR ApplyBulletSettings
+  RTS
+
+AssignBulletState2:
+  LDA #BULLFRAME3             ; Assign bullet frame 0 to all tiles
+  STA bulletFrame
+  LDA #BULLETNOFL             ; Top left, no flip
+  STA bulletAttr
+  LDX #$01
+  LDA #BULLFRAME3
+  STA bulletFrame, X
+  LDA #BULLETFLX              ; Top right, flip x
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME3
+  STA bulletFrame, X
+  LDA #BULLETFLY              ; Bottom left, flip y
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME3
+  STA bulletFrame, X
+  LDA #BULLETFLXY             ; Bottom right, flip x and y
+  STA bulletAttr, X
+  JSR ApplyBulletSettings
+  RTS
+
+AssignBulletState3:
+  LDA #BULLFRAME2
+  STA bulletFrame
+  LDA #BULLETFLX              ; Top left, flip x
+  STA bulletAttr
+  LDX #$01
+  LDA #BULLFRAME1
+  STA bulletFrame, X
+  LDA #BULLETFLX              ; Top right, flip x
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME1
+  STA bulletFrame, X
+  LDA #BULLETFLY              ; Bottom left, flip xy
+  STA bulletAttr, X
+  INX
+  LDA #BULLFRAME2
+  STA bulletFrame, X
+  LDA #BULLETFLY              ; Bottom right, flip xy
+  STA bulletAttr, X
+  JSR ApplyBulletSettings
+  RTS
+
+; Takes pre-filled bullet frames and attributes and applies them to the
+; current bullet pointer
+ApplyBulletSettings:
+  LDX #$00                    ; Starts our loop at 0
+ApplyBulletSettingsLoop:
+  LDA bulletFrame, X
+  LDY #SPRITETIL              ; Assign tile
+  STA [pointerLo], Y
+  LDY #SPRITEATT              ; Assign attributes
+  LDA bulletAttr, X
+  STA [pointerLo], Y
+  LDA pointerLo               ; Increment pointer by 4 bytes to next sprite
+  CLC
+  ADC #$04
+  STA pointerLo
+  INX
+  CPX #$04                    ; Check whether we're done with the loop
+  BNE ApplyBulletSettingsLoop
   RTS
 
 UpdateBulletPos:
+  LDA #SPRITEHI               ; Set pointer to sprite hi
+  STA pointerHi
+  LDA #BULLET0                ; Set pointerLo to first bullet
+  STA pointerLo
+UpdateBulletPosLoop:
   ; Move bullet
-  LDA BULLET00
+  LDY #$00
+  LDA [pointerLo], Y
   CLC
-  ADC #SPDBULLET
-  STA BULLET00
+  ADC #SPDSLOW
+  STA [pointerLo], Y
   LDY #SPRITEX
-  LDA BULLET00, Y
+  LDA [pointerLo], Y
   SEC
   SBC #SPDSLOW
-  STA BULLET00, Y
+  STA [pointerLo], Y
 
   ; Update bullet sprites
-  LDA #$18                    ; Bullet 0 low byte
   LDX #$02                    ; Sprite is 2 tiles high
-  STA spriteLayoutAddressLo
-  JSR UpdateSpriteLayout
+  JSR UpdateSpriteLayout      ; Pointer is in correct spot already, and will
+                              ; be incremented to next bullet by the layout
+  ; TODO test to see if we're done with bullets
   RTS
 
-
 ; Update sprite layout for a group of sprites
-; Expects spriteLayoutAddressLo to be set to the top left sprite address
-; Expects X? to be set to sprite height?
+; Expects pointerLo to be set to the top left sprite address
+; Expects X to be set to sprite height in tiles
 ; Expects all sprites to be 2 tiles wide
 UpdateSpriteLayout:
   LDY #$00                    ; Store sprite y origin
-  LDA [spriteLayoutAddressLo], Y
+  LDA [pointerLo], Y
   STA spriteLayoutOriginY
   LDY #SPRITEX                ; Store sprite x origin
-  LDA [spriteLayoutAddressLo], Y
+  LDA [pointerLo], Y
   STA spriteLayoutOriginX
 UpdateSpriteLoop:
   ; Set Y's
   LDY #$00                    ; Row y0
   LDA spriteLayoutOriginY     ; Set sprite Y's
-  STA [spriteLayoutAddressLo], Y
+  STA [pointerLo], Y
   LDY #$04                    ; Row y1
-  STA [spriteLayoutAddressLo], Y
+  STA [pointerLo], Y
   ; Set X's
   LDY #SPRITEX                ; Set sprite X's
   LDA spriteLayoutOriginX
-  STA [spriteLayoutAddressLo], Y
+  STA [pointerLo], Y
   CLC
   ADC #TILEW
   LDY #SPRITE2X
-  STA [spriteLayoutAddressLo], Y
+  STA [pointerLo], Y
   ; Increment Y for next loop
-  LDA spriteLayoutAddressLo   ; Increment low address for next loop
+  LDA pointerLo   ; Increment low address for next loop
   CLC
   ADC #$08                    ; 8 bytes for 2 tile wide sprites
-  STA spriteLayoutAddressLo
+  STA pointerLo
   LDA spriteLayoutOriginY     ; Increment row Y
   CLC
   ADC #TILEW

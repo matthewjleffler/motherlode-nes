@@ -6,14 +6,15 @@ pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
 buttons                 .rs 1 ; buttons
 animTick                .rs 1 ; Slows down animation counting
-bulletAnim0             .rs 1 ; Bullet 0 anim state
-spriteLayoutAddressLo   .rs 1 ; Low byte of sprite layout address
-spriteLayoutAddressHi   .rs 1 ; Hi byte of sprite layout address
+bulletAnim              .rs 1 ; Bullet anim state
 spriteLayoutOriginY     .rs 1 ; Y of sprite origin
 spriteLayoutOriginX     .rs 1 ; X of sprite origin
-multFactor              .rs 1 ; Multiplication factor
-multRes1                .rs 1 ; Multiplication result 1
-multRes2                .rs 1 ; Multiplication result 2
+bulletFrame             .rs 4 ; The frames to apply to the current bullet
+bulletAttr              .rs 4 ; The attributes to apply to the current bullet
+bulletCount             .rs 1 ; Total number of bullets to render
+; multFactor              .rs 1 ; Multiplication factor
+; multRes1                .rs 1 ; Multiplication result 1
+; multRes2                .rs 1 ; Multiplication result 2
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
@@ -46,12 +47,8 @@ SPDBULLET   = $01
 ; Sprites, low addresses relative to $0200
 PLAYER      = $00
 BULLET0     = $18
-BULLET00    = $0218
-BULLET01    = $021C
-BULLET02    = $0220
-BULLET03    = $0224
 
-; ANIMATION
+; Animation
 BULLETNOFL  = %00000001
 BULLETFLX   = %01000001
 BULLETFLY   = %10000001
