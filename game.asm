@@ -67,6 +67,8 @@ LoadPalettesLoop:
   BNE LoadPalettesLoop        ; Branch to LoadPalettesLoop if loop not done
 
 LoadSprites:
+  LDA #SPRITEHI
+  STA spriteLayoutAddressHi   ; Set the high spriteLayoutAddress, doesn't change
   LDX #$00                    ; start at 0
 LoadSpritesLoop:
   LDA sprites, x              ; load data from address (sprites +  x)
@@ -236,26 +238,10 @@ SubSpeedFast:
   RTS
 
 UpdatePlayerSprites:
-  ; Sprite y
-  LDA PLAYER0                 ; Sprite 0 y
-  STA PLAYER1                 ; Sprite 1 y
-  CLC
-  ADC #TILEW                  ; Add 1 tile
-  STA PLAYER2                 ; Sprite 2 y
-  STA PLAYER3                 ; Sprite 3 y
-  ADC #TILEW                  ; Add 1 more tile
-  STA PLAYER4                 ; Sprite 4 y
-  STA PLAYER5                 ; Sprite 5 y
-  ; Sprite x
-  LDX #SPRITEX                ; x coord address offset
-  LDA PLAYER0, X              ; Sprite 0 x
-  STA PLAYER2, X              ; Sprite 2 x
-  STA PLAYER4, X              ; Sprite 4 x
-  CLC
-  ADC #TILEW                  ; Add 1 tile
-  STA PLAYER1, X              ; Sprite 1 x
-  STA PLAYER3, X              ; Sprite 3 x
-  STA PLAYER5, X              ; Sprite 5 x
+  LDX #$03                    ; Player is 3 tiles high
+  LDA #PLAYER                 ; Player low bytes
+  STA spriteLayoutAddressLo
+  JSR UpdateSpriteLayout
   RTS
 
 UpdateBullets:
@@ -348,24 +334,88 @@ BulletNoFlip:
   RTS
 
 UpdateBulletPos:
-  ; Bullet Y
+  ; Move bullet
   LDA BULLET00
   CLC
   ADC #SPDBULLET
   STA BULLET00
-  STA BULLET01
-  ADC #TILEW
-  STA BULLET02
-  STA BULLET03
-  ; BulletX
-  LDX #SPRITEX
-  LDA BULLET00, X
+  LDY #SPRITEX
+  LDA BULLET00, Y
   SEC
   SBC #SPDSLOW
-  STA BULLET00, X
-  STA BULLET02, X
+  STA BULLET00, Y
+
+  ; Update bullet sprites
+  LDA #$18                    ; Bullet 0 low byte
+  LDX #$02                    ; Sprite is 2 tiles high
+  STA spriteLayoutAddressLo
+  JSR UpdateSpriteLayout
+  RTS
+
+
+; Update sprite layout for a group of sprites
+; Expects spriteLayoutAddressLo to be set to the top left sprite address
+; Expects X? to be set to sprite height?
+; Expects all sprites to be 2 tiles wide
+UpdateSpriteLayout:
+  LDY #$00                    ; Store sprite y origin
+  LDA [spriteLayoutAddressLo], Y
+  STA spriteLayoutOriginY
+  LDY #SPRITEX                ; Store sprite x origin
+  LDA [spriteLayoutAddressLo], Y
+  STA spriteLayoutOriginX
+UpdateSpriteLoop:
+  ; Set Y's
+  LDY #$00                    ; Row y0
+  LDA spriteLayoutOriginY     ; Set sprite Y's
+  STA [spriteLayoutAddressLo], Y
+  LDY #$04                    ; Row y1
+  STA [spriteLayoutAddressLo], Y
+  ; Set X's
+  LDY #SPRITEX                ; Set sprite X's
+  LDA spriteLayoutOriginX
+  STA [spriteLayoutAddressLo], Y
   CLC
   ADC #TILEW
-  STA BULLET01, X
-  STA BULLET03, X
+  LDY #SPRITE2X
+  STA [spriteLayoutAddressLo], Y
+  ; Increment Y for next loop
+  LDA spriteLayoutAddressLo   ; Increment low address for next loop
+  CLC
+  ADC #$08                    ; 8 bytes for 2 tile wide sprites
+  STA spriteLayoutAddressLo
+  LDA spriteLayoutOriginY     ; Increment row Y
+  CLC
+  ADC #TILEW
+  STA spriteLayoutOriginY
+  DEX
+  BNE UpdateSpriteLoop
   RTS
+
+; 8-bit multiply
+; by Bregalad
+; Enter with A,Y, numbers to multiply
+; Output with YA = 16-bit result (X is unchanged)
+; Multiply:
+;   STY multFactor              ; Store input factor
+;   LDY #$00
+;   STY multRes1                ; Clear result
+;   STY multRes2
+;   LDY #$08                    ; Number of shifts needed
+; MultNeg:
+;   LSR A                       ; Shift right input number
+;   BCC MultPos                 ; Check if bit is set
+;   PHA
+;   LDA multRes2
+;   CLC
+;   ADC multFactor
+;   STA multRes2                ; If so add number to result
+;   PLA
+; MultPos:
+;   LSR multRes2                ; Shift result right
+;   ROR multRes1
+;   DEY
+;   BNE MultNeg
+;   LDA multRes1
+;   LDY multRes2
+;   RTS
