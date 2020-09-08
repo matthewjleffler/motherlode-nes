@@ -19,7 +19,7 @@ bulletCount             .rs 1 ; Total number of bullets to render
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
 
-; Render Constants
+; Rendering
 SPRITEHI    = $02             ; High byte of sprite address is always the same
 TILEW       = $08
 SPRITETIL   = $01
@@ -38,6 +38,9 @@ BUTTONU     = %00001000
 BUTTOND     = %00000100
 BUTTONL     = %00000010
 BUTTONR     = %00000001
+
+; Gameplay
+BULLETCOUNT = $04             ; Number of bullets to render ; TODO dynamic #?
 
 ; Move Speed
 SPDSLOW     = $01             ; 1 pixel per frame

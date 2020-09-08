@@ -72,7 +72,7 @@ LoadSpritesLoop:
   LDA sprites, x              ; load data from address (sprites +  x)
   STA $0200, x                ; store into RAM address ($0200 + x)
   INX
-  CPX #$38                    ; Size of all sprites
+  CPX #$58                    ; Size of all sprites
   BNE LoadSpritesLoop         ; Branch to LoadSpritesLoop if loop not done
 
 LoadBackground:
@@ -257,17 +257,25 @@ UpdateBulletAnim:
   LDX bulletAnim              ; Increment bullet anim
   INX
   STX bulletAnim
+  LDX #0                      ; Start the bullet count
+  STX bulletCount
   LDA #BULLET0                ; point the low pointer at the first bullet
   STA pointerLo
 UpdateBulletAnimLoop:
   JSR UpdateSingleBullet
-  ; TODO loop to other bullets
+  LDX bulletCount             ; Count that we've updated a bullet
+  INX
+  STX bulletCount
+  CPX #BULLETCOUNT
+  BNE UpdateBulletAnimLoop    ; Update next bullet, pointerLo has been updated
+                              ; to the correct spot by applying bullet attr
   RTS
 
 UpdateSingleBullet:
-  ; Bullet0
-  LDA #BULLSTATE              ; Compare the first two bits
-  AND bulletAnim
+  LDA bulletAnim              ; Test animation state
+  CLC
+  ADC bulletCount             ; Add an offset of the current bullet count
+  AND #BULLSTATE              ; Check the bullet state
   CMP #$03                    ; State3
   BEQ BulletState3
   CMP #$02                    ; State2
@@ -401,6 +409,8 @@ UpdateBulletPos:
   STA pointerHi
   LDA #BULLET0                ; Set pointerLo to first bullet
   STA pointerLo
+  LDX #0                      ; Set up counter
+  STX bulletCount
 UpdateBulletPosLoop:
   ; Move bullet
   LDY #$00
@@ -418,7 +428,11 @@ UpdateBulletPosLoop:
   LDX #$02                    ; Sprite is 2 tiles high
   JSR UpdateSpriteLayout      ; Pointer is in correct spot already, and will
                               ; be incremented to next bullet by the layout
-  ; TODO test to see if we're done with bullets
+  LDX bulletCount
+  INX
+  STX bulletCount
+  CPX #BULLETCOUNT
+  BNE UpdateBulletPosLoop
   RTS
 
 ; Update sprite layout for a group of sprites
