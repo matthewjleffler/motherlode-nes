@@ -4,7 +4,9 @@
 
 pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
-buttons                 .rs 1 ; buttons
+temp                    .rs 1 ; temp reusable byte
+buttons1                .rs 1 ; controller 1 buttons
+buttons2                .rs 1 ; controller 2 buttons
 animTick                .rs 1 ; Slows down animation counting
 bulletAnim              .rs 1 ; Bullet anim state
 spriteLayoutOriginY     .rs 1 ; Y of sprite origin
@@ -28,8 +30,8 @@ SPRITEX     = $03
 SPRITE2X    = $07             ; In a 2 tile wide sprite, the right hand tile
 
 ; Controllers
-CONTROLLER1 = $4016
-CONTROLLER2 = $4017
+CONTROLHI   = $40
+CONTROLLO   = $16
 BUTTONA     = %10000000
 BUTTONB     = %01000000
 BUTTONSEL   = %00100000
@@ -48,8 +50,8 @@ SPDFAST     = $03             ; 3 pixels per frame
 SPDBULLET   = $01
 
 ; Sprites, low addresses relative to $0200
-PLAYER      = $00
-BULLET0     = $18
+PLAYER      = $40             ; 16 x 4 bullets = 64 = $40
+BULLET0     = $00
 
 ; Animation
 BULLETNOFL  = %00000001

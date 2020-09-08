@@ -127,11 +127,8 @@ NMI:
 
 GameLoop:
   JSR CountAnimation
-  JSR ReadController1
-  JSR TestMoveLeft
-  JSR TestMoveRight
-  JSR TestMoveUp
-  JSR TestMoveDown
+  JSR ReadControllers
+  JSR TestPlayerMove
   JSR UpdatePlayerSprites
   JSR UpdateBullets
   RTS
@@ -142,72 +139,97 @@ CountAnimation:
   STX animTick
   RTS
 
-; Controller reading
-LatchController:
-  LDA #$01
-  STA CONTROLLER1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Controllers and Input
+
+ReadControllers:
+  LDA #CONTROLHI              ; Setup pointers for controller 1
+  STA pointerHi
+  LDA #CONTROLLO
+  STA pointerLo
+  LDY #$00
+  LDA #$01                    ; Latch both controller buttons
+  STA [pointerLo], Y
   LDA #$00
-  STA CONTROLLER1             ; tell both the controllers to latch buttons
-  LDX #$08                    ; set up counter
+  STA [pointerLo], Y
+ReadControllerLoop:
+  LDX #$08                    ; Setup counter
+ReadControllerButton:
+  LDA [pointerLo], Y
+  LSR A                       ; bit0 -> carry
+  ROL temp                    ; bit0 <- carry
+  DEX                         ; see if this loop is done
+  BNE ReadControllerButton    ; continue loop
+  LDA temp                    ; get ready to store the temp buttons
+  CPY #$01                    ; Second controller?
+  BEQ StoreController2
+  STA buttons1
+  INY                         ; Increment Y for next controller
+  JMP ReadControllerLoop
+StoreController2:
+  STA buttons2
   RTS
 
-ReadController1:
-  JSR LatchController
-ReadControllerLoop1:
-  LDA CONTROLLER1
-  LSR A                       ; bit0 -> carry
-  ROL buttons                 ; bit0 <- carry
-  DEX
-  BNE ReadControllerLoop1
+TestPlayerMove:
+  LDA #SPRITEHI               ; Setup pointers for player
+  STA pointerHi
+  LDA #PLAYER
+  STA pointerLo
+  LDY #SPRITEX                ; First check x, Left/right
+  JSR TestMoveLeft
+  JSR TestMoveRight
+  LDY #0                      ; Then check y, Up/Down
+  JSR TestMoveUp
+  JSR TestMoveDown
   RTS
 
 TestMoveLeft:
-  LDA buttons
+  LDA buttons1
   AND #BUTTONL
   BNE MoveLeft
   RTS
 MoveLeft:
-  LDA $0203                   ; Sprite 0 x position
+  LDA [pointerLo], Y          ; Sprite 0 x position
   JSR SubSpeed
-  STA $0203
+  STA [pointerLo], Y
   RTS
 
 TestMoveRight:
-  LDA buttons
+  LDA buttons1
   AND #BUTTONR
   BNE MoveRight
   RTS
 MoveRight:
-  LDA $0203                   ; Sprite 0 x position
+  LDA [pointerLo], Y
   JSR AddSpeed
-  STA $0203
+  STA [pointerLo], Y
   RTS
 
 TestMoveUp:
-  LDA buttons
+  LDA buttons1
   AND #BUTTONU
   BNE MoveUp
   RTS
 MoveUp:
-  LDA $0200
+  LDA [pointerLo], Y
   JSR SubSpeed
-  STA $0200
+  STA [pointerLo], Y
   RTS
 
 TestMoveDown:
-  LDA buttons
+  LDA buttons1
   AND #BUTTOND
   BNE MoveDown
   RTS
 MoveDown:
-  LDA $0200
+  LDA [pointerLo], Y
   JSR AddSpeed
-  STA $0200
+  STA [pointerLo], Y
   RTS
 
 AddSpeed:
   TAX                         ; Put sprite location A in x
-  LDA buttons
+  LDA buttons1
   AND #BUTTONB                ; Are we holding B?
   CLC
   BNE AddSpeedFast
@@ -222,7 +244,7 @@ AddSpeedFast:
 
 SubSpeed:
   TAX                         ; Put sprite location A in x
-  LDA buttons
+  LDA buttons1
   AND #BUTTONB                ; Are we holding B?
   SEC
   BNE SubSpeedFast
@@ -234,6 +256,9 @@ SubSpeedFast:
   TXA                         ; Move sprite location back to A
   SBC #SPDFAST                ; Sub fast
   RTS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Sprite Updates
 
 UpdatePlayerSprites:
   LDX #$03                    ; Player is 3 tiles high
