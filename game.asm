@@ -69,12 +69,25 @@ LoadPalettesLoop:
 
 LoadSprites:
   LDX #$00                    ; start at 0
-LoadSpritesLoop:
-  LDA sprites, x              ; load data from address (sprites +  x)
-  STA $0200, x                ; store into RAM address ($0200 + x)
+  LDA #$FF                    ; fill with empty bytes
+LoadSpriteLoop:
+  STA $0200, X
   INX
-  CPX #$58                    ; Size of all sprites
-  BNE LoadSpritesLoop         ; Branch to LoadSpritesLoop if loop not done
+  BNE LoadSpriteLoop          ; Add until we loop back to 0
+
+; TODO move this to gameplay code
+AssignPlayerSprites:
+  LDA #SPRITEHI               ; setup player sprite pointer
+  STA pointerHi
+  LDA #PLAYER
+  STA pointerLo
+  LDY #$00
+AssignPlayerSpriteLoop:
+  LDA playersprites, Y
+  STA [pointerLo], Y
+  INY
+  CPY #PLAYERSIZE             ; Loop until we have finished all the player bytes
+  BNE AssignPlayerSpriteLoop
 
 LoadBackground:
   LDA $2002                   ; read PPU status to reset the high/low latch
@@ -285,7 +298,7 @@ UpdateBulletAnim:
   STX bulletAnim
   LDX #0                      ; Start the bullet count
   STX bulletCount
-  LDA #BULLET0                ; point the low pointer at the first bullet
+  LDA #PBULLET0               ; point the low pointer at the first bullet
   STA pointerLo
 UpdateBulletAnimLoop:
   JSR UpdateSingleBullet
@@ -406,7 +419,7 @@ ApplyBulletSettingsLoop:
 UpdateBulletPos:
   LDA #SPRITEHI               ; Set pointer to sprite hi
   STA pointerHi
-  LDA #BULLET0                ; Set pointerLo to first bullet
+  LDA #PBULLET0               ; Set pointerLo to first bullet
   STA pointerLo
   LDX #0                      ; Set up counter
   STX bulletCount
@@ -458,7 +471,7 @@ UpdateSpriteLoop:
   STA [pointerLo], Y
   CLC
   ADC #TILEW
-  LDY #SPRITE2X
+  LDY #SPRITEX+4              ; Second sprite's X
   STA [pointerLo], Y
   ; Increment Y for next loop
   LDA pointerLo   ; Increment low address for next loop

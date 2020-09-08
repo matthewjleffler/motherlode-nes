@@ -15,6 +15,7 @@ spriteLayoutOriginX     .rs 1 ; X of sprite origin
 bulletFrame             .rs 4 ; The frames to apply to the current bullet
 bulletAttr              .rs 4 ; The attributes to apply to the current bullet
 bulletCount             .rs 1 ; Total number of bullets to render
+playerBulletStates      .rs 1 ; On/off states for 8 player bullets
 ; multFactor              .rs 1 ; Multiplication factor
 ; multRes1                .rs 1 ; Multiplication result 1
 ; multRes2                .rs 1 ; Multiplication result 2
@@ -28,7 +29,6 @@ TILEW       = $08
 SPRITETIL   = $01
 SPRITEATT   = $02
 SPRITEX     = $03
-SPRITE2X    = $07             ; In a 2 tile wide sprite, the right hand tile
 
 ; Controllers
 CONTROLHI   = $40
@@ -43,16 +43,21 @@ BUTTONL     = %00000010
 BUTTONR     = %00000001
 
 ; Gameplay
-BULLETCOUNT = $04             ; Number of bullets to render ; TODO dynamic #?
+BULLETCOUNT = $04             ; Number of bullets to render
 
 ; Move Speed
 SPDSLOW     = $01             ; 1 pixel per frame
 SPDFAST     = $03             ; 3 pixels per frame
 SPDBULLET   = $01
 
-; Sprites, low addresses relative to $0200
-PLAYER      = $40             ; 16 x 4 bullets = 64 = $40
-BULLET0     = $00
+; Sprite lo addresses
+EBULLET0    = $00             ; Size: 4*8=32
+PBULLET0    = $20             ; Size: 4*4*4=64
+PLAYER      = $60             ; Size: 4*6=24
+ITEM        = $78             ; Size: 4*4=8
+ENEMY0      = $80             ; Size: 4*4*?
+
+PLAYERSIZE  = $18             ; player byte size
 
 ; Animation
 BULLETNOFL  = %00000001
