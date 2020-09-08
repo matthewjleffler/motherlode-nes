@@ -3,6 +3,7 @@
 ;     NMI interrupt
 ;     Game loop
 ; Note: variables and constants defined in vars.asm
+;       tables and sprites are in tables.asm
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; RESET and init
@@ -307,7 +308,6 @@ UpdateSingleBullet:
   BEQ BulletState2
   CMP #$01                    ; State1
   BEQ BulletState1
-  ; TODO move down the line for other bullets
 BulletState0:
   JMP AssignBulletState0
 BulletState1:
@@ -318,94 +318,68 @@ BulletState3:
   JMP AssignBulletState3
 
 AssignBulletState0:
-  LDA #BULLFRAME0             ; Assign bullet frame 0 to all tiles
-  STA bulletFrame
-  LDA #BULLETNOFL             ; Top left, no flip
-  STA bulletAttr
-  LDX #$01
-  LDA #BULLFRAME0
-  STA bulletFrame, X
-  LDA #BULLETFLX              ; Top right, flip x
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME0
-  STA bulletFrame, X
-  LDA #BULLETFLY              ; Bottom left, flip y
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME0
-  STA bulletFrame, X
-  LDA #BULLETFLXY             ; Bottom right, flip x and y
-  STA bulletAttr, X
+  LDA #BULLFRAME0             ; Assign frame 0 to all tiles
+  STA bulletFrame+0
+  STA bulletFrame+1
+  STA bulletFrame+2
+  STA bulletFrame+3
+  LDA #BULLETNOFL             ; TL no flip
+  STA bulletAttr+0
+  LDA #BULLETFLX              ; TR flip x
+  STA bulletAttr+1
+  LDA #BULLETFLY              ; BL flip y
+  STA bulletAttr+2
+  LDA #BULLETFLXY             ; BR flip xy
+  STA bulletAttr+3
   JSR ApplyBulletSettings
   RTS
 
 AssignBulletState1:
-  LDA #BULLFRAME1
-  STA bulletFrame
-  LDA #BULLETNOFL             ; Top left, no flip
-  STA bulletAttr
-  LDX #$01
-  LDA #BULLFRAME2
-  STA bulletFrame, X
-  LDA #BULLETNOFL             ; Top right, no flip
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME2
-  STA bulletFrame, X
-  LDA #BULLETFLXY             ; Bottom left, flip xy
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME1
-  STA bulletFrame, X
-  LDA #BULLETFLXY             ; Bottom right, flip xy
-  STA bulletAttr, X
+  LDA #BULLFRAME1             ; Assign frame 1 to TL and BR tiles
+  STA bulletFrame+0
+  STA bulletFrame+3
+  LDA #BULLFRAME2             ; Assign frame 2 to TR and BL tiles
+  STA bulletFrame+1
+  STA bulletFrame+2
+  LDA #BULLETNOFL             ; TL and TR no flip
+  STA bulletAttr+0
+  STA bulletAttr+1
+  LDA #BULLETFLXY             ; BL and BR flip xy
+  STA bulletAttr+2
+  STA bulletAttr+3
   JSR ApplyBulletSettings
   RTS
 
 AssignBulletState2:
-  LDA #BULLFRAME3             ; Assign bullet frame 0 to all tiles
-  STA bulletFrame
-  LDA #BULLETNOFL             ; Top left, no flip
-  STA bulletAttr
-  LDX #$01
-  LDA #BULLFRAME3
-  STA bulletFrame, X
-  LDA #BULLETFLX              ; Top right, flip x
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME3
-  STA bulletFrame, X
-  LDA #BULLETFLY              ; Bottom left, flip y
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME3
-  STA bulletFrame, X
-  LDA #BULLETFLXY             ; Bottom right, flip x and y
-  STA bulletAttr, X
+  LDA #BULLFRAME3             ; Assign frame 3 to all tiles
+  STA bulletFrame+0
+  STA bulletFrame+1
+  STA bulletFrame+2
+  STA bulletFrame+3
+  LDA #BULLETNOFL             ; TL no flip
+  STA bulletAttr+0
+  LDA #BULLETFLX              ; TR flip x
+  STA bulletAttr+1
+  LDA #BULLETFLY              ; BL flip y
+  STA bulletAttr+2
+  LDA #BULLETFLXY             ; BR flip xy
+  STA bulletAttr+3
   JSR ApplyBulletSettings
   RTS
 
 AssignBulletState3:
-  LDA #BULLFRAME2
-  STA bulletFrame
-  LDA #BULLETFLX              ; Top left, flip x
-  STA bulletAttr
-  LDX #$01
-  LDA #BULLFRAME1
-  STA bulletFrame, X
-  LDA #BULLETFLX              ; Top right, flip x
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME1
-  STA bulletFrame, X
-  LDA #BULLETFLY              ; Bottom left, flip xy
-  STA bulletAttr, X
-  INX
-  LDA #BULLFRAME2
-  STA bulletFrame, X
-  LDA #BULLETFLY              ; Bottom right, flip xy
-  STA bulletAttr, X
+  LDA #BULLFRAME2             ; Assign frame 2 to TL and BR tiles
+  STA bulletFrame+0
+  STA bulletFrame+3
+  LDA #BULLFRAME1             ; Assign frame 1 to TR and BL tiles
+  STA bulletFrame+1
+  STA bulletFrame+2
+  LDA #BULLETFLX              ; TL and TR flip x
+  STA bulletAttr+0
+  STA bulletAttr+1
+  LDA #BULLETFLY              ; BL and BR flip y
+  STA bulletAttr+2
+  STA bulletAttr+3
   JSR ApplyBulletSettings
   RTS
 

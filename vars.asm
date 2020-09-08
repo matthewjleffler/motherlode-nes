@@ -1,5 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Variables
+
   .rsset $0000                ; put pointers in zero page
 
 pointerLo               .rs 1 ; pointer variables are declared in RAM
