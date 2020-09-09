@@ -15,7 +15,12 @@ spriteLayoutOriginX     .rs 1 ; X of sprite origin
 bulletFrame             .rs 4 ; The frames to apply to the current bullet
 bulletAttr              .rs 4 ; The attributes to apply to the current bullet
 bulletCount             .rs 1 ; Total number of bullets to render
-playerBulletStates      .rs 1 ; On/off states for 8 player bullets
+playerBulletStates      .rs 1 ; On/off states for 4 player bullets
+                              ; 00 - off
+                              ; 01 - on
+                              ; 10 - explosion?
+                              ; 11 - unused ??
+                              ; 44332211
 ; multFactor              .rs 1 ; Multiplication factor
 ; multRes1                .rs 1 ; Multiplication result 1
 ; multRes2                .rs 1 ; Multiplication result 2
@@ -43,12 +48,14 @@ BUTTONL     = %00000010
 BUTTONR     = %00000001
 
 ; Gameplay
+STATEMASK   = %00000011       ; Mask for lower two bits
+HICLEAR     = %00111111       ; Mask to clear high bits
 BULLETCOUNT = $04             ; Number of bullets to render
 
 ; Move Speed
 SPDSLOW     = $01             ; 1 pixel per frame
 SPDFAST     = $03             ; 3 pixels per frame
-SPDBULLET   = $01
+SPDBULLET   = $05
 
 ; Sprite lo addresses
 EBULLET0    = $00             ; Size: 4*8=32
@@ -64,8 +71,12 @@ BULLETNOFL  = %00000001
 BULLETFLX   = %01000001
 BULLETFLY   = %10000001
 BULLETFLXY  = %11000001
-BULLSTATE   = %00000011
 BULLFRAME0  = $06
 BULLFRAME1  = $07
 BULLFRAME2  = $08
 BULLFRAME3  = $09
+
+; Bullet States
+BULL_OFF    = $00
+BULL_MOV    = $01
+BULL_EXP    = $02

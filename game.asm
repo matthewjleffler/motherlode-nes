@@ -143,6 +143,7 @@ GameLoop:
   JSR CountAnimation
   JSR ReadControllers
   JSR TestPlayerMove
+  JSR TestShootBullet
   JSR UpdatePlayerSprites
   JSR UpdateBullets
   RTS
@@ -271,6 +272,17 @@ SubSpeedFast:
   SBC #SPDFAST                ; Sub fast
   RTS
 
+TestShootBullet:
+  LDA buttons1
+  AND #BUTTONA
+  BNE ShootBullet
+  RTS
+ShootBullet:
+  ; TODO shoot an available bullet, set pos, etc
+  LDA #$01
+  STA playerBulletStates
+  RTS
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Sprite Updates
 
@@ -283,10 +295,39 @@ UpdatePlayerSprites:
   JSR UpdateSpriteLayout
   RTS
 
+; Gets current bullet state, and shifts bullet info over
+; Stores resulting state in temp
+GetBulletState:
+  LDA playerBulletStates      ; Get current state in A
+  AND #STATEMASK
+  LSR playerBulletStates      ; Move state off playerBulletStates
+  LSR playerBulletStates      ; Last two bits are 0
+  STA temp                    ; Store result in temp
+  JSR SetBulletState          ; Store current state back, in case of no change
+  LDA temp
+  RTS
+
+; Sets current bullet state in high bits of playerBulletStates
+; Expects the new state to already be in the low bits of temp
+; Can be assigned multiple times, temp is preserved between calls
+SetBulletState:
+  LDA playerBulletStates      ; Make sure high bits are clear
+  AND #HICLEAR
+  STA playerBulletStates
+  LDA temp
+  CLC
+  ROR A                       ; 000000AB -> B
+  ROR A                       ; B000000A -> A
+  ROR A                       ; AB000000 -> 0
+  ORA playerBulletStates      ; Inclusive OR with playerBulletStates,
+                              ; high bits should be empty and ready for this
+  STA playerBulletStates      ; Store result
+  RTS
+
 UpdateBullets:
   LDA #SPRITEHI               ; point the high pointer at SPRITEHI for bullets
   STA pointerHi
-  LDA #%00000011
+  LDA #STATEMASK
   AND animTick
   BEQ UpdateBulletAnim        ; Animate every 4 ticks, if the AND is 0
   JSR UpdateBulletPos
@@ -311,26 +352,54 @@ UpdateBulletAnimLoop:
   RTS
 
 UpdateSingleBullet:
+  JSR GetBulletState          ; Get bullet state
+  CMP #BULL_EXP               ; Exploding
+  BEQ BulletStateExploding
+  CMP #BULL_MOV               ; Animating and moving
+  BEQ BulletTravel
+
+; BulletStateOff              ; Bullet is already off, and hidden
+  LDA pointerLo               ; Move pointer to next bullet
+  CLC
+  ADC #$08
+  STA pointerLo
+  RTS
+
+; Bullet is dead, hide it, then set state to off
+HideBullet:
+  LDA #BULL_OFF               ; Set state to off
+  STA temp
+  JSR SetBulletState
+  LDX #02                     ; Sprite is 2 tiles high
+  JSR HideSpriteLayout        ; Hide sprite, pointer is advanced
+
+; Bullet is exploding, animate the explosion and then set state to off
+BulletStateExploding:
+  ; TODO - for now just move the pointer ahead for the next bullet
+  ; TODO - animate exploding
+  JSR HideBullet
+
+BulletTravel:
   LDA bulletAnim              ; Test animation state
   CLC
   ADC bulletCount             ; Add an offset of the current bullet count
-  AND #BULLSTATE              ; Check the bullet state
+  AND #STATEMASK              ; Check the bullet state
   CMP #$03                    ; State3
-  BEQ BulletState3
+  BEQ BulletAnim3
   CMP #$02                    ; State2
-  BEQ BulletState2
+  BEQ BulletAnim2
   CMP #$01                    ; State1
-  BEQ BulletState1
-BulletState0:
-  JMP AssignBulletState0
-BulletState1:
-  JMP AssignBulletState1
-BulletState2:
-  JMP AssignBulletState2
-BulletState3:
-  JMP AssignBulletState3
+  BEQ BulletAnim1
+;BulletAnim0
+  JMP AssignBulletAnim0
+BulletAnim1:
+  JMP AssignBulletAnim1
+BulletAnim2:
+  JMP AssignBulletAnim2
+BulletAnim3:
+  JMP AssignBulletAnim3
 
-AssignBulletState0:
+AssignBulletAnim0:
   LDA #BULLFRAME0             ; Assign frame 0 to all tiles
   STA bulletFrame+0
   STA bulletFrame+1
@@ -347,7 +416,7 @@ AssignBulletState0:
   JSR ApplyBulletSettings
   RTS
 
-AssignBulletState1:
+AssignBulletAnim1:
   LDA #BULLFRAME1             ; Assign frame 1 to TL and BR tiles
   STA bulletFrame+0
   STA bulletFrame+3
@@ -363,7 +432,7 @@ AssignBulletState1:
   JSR ApplyBulletSettings
   RTS
 
-AssignBulletState2:
+AssignBulletAnim2:
   LDA #BULLFRAME3             ; Assign frame 3 to all tiles
   STA bulletFrame+0
   STA bulletFrame+1
@@ -380,7 +449,7 @@ AssignBulletState2:
   JSR ApplyBulletSettings
   RTS
 
-AssignBulletState3:
+AssignBulletAnim3:
   LDA #BULLFRAME2             ; Assign frame 2 to TL and BR tiles
   STA bulletFrame+0
   STA bulletFrame+3
@@ -424,27 +493,61 @@ UpdateBulletPos:
   LDX #0                      ; Set up counter
   STX bulletCount
 UpdateBulletPosLoop:
+  JSR GetBulletState          ; Get bullet state
+  CMP #BULL_MOV
+  BEQ MoveBullet
+; No Change
+  LDA pointerLo               ; Move pointer to next bullet
+  CLC
+  ADC #$08
+  STA pointerLo
+  JMP IncrementBulletPosLoop
+
+MoveBullet:
   ; Move bullet
+  ; TODO move direction
   LDY #$00
   LDA [pointerLo], Y
   CLC
-  ADC #SPDSLOW
+  ADC #SPDBULLET
   STA [pointerLo], Y
   LDY #SPRITEX
   LDA [pointerLo], Y
   SEC
-  SBC #SPDSLOW
+  SBC #SPDBULLET
   STA [pointerLo], Y
+  ; TODO test collision
 
   ; Update bullet sprites
   LDX #$02                    ; Sprite is 2 tiles high
   JSR UpdateSpriteLayout      ; Pointer is in correct spot already, and will
                               ; be incremented to next bullet by the layout
+IncrementBulletPosLoop:
   LDX bulletCount
   INX
   STX bulletCount
   CPX #BULLETCOUNT
   BNE UpdateBulletPosLoop
+  RTS
+
+; Sets all sprites to hidden for a given layout
+; Expects pointerLo to be set for the top left sprite address
+; Expects X to be set to sprite height in tiles
+; Expects all sprites to be 2 tiles wide
+HideSpriteLayout:
+  LDY #$00                    ; Store sprite y origin offset
+  LDA #$FF                    ; Store "offscreen" FF in sprite y
+HideSpriteLoop:
+  STA [pointerLo], Y          ; Set Y's
+  LDY #$04                    ; Next sprite's Y
+  STA [pointerLo], Y
+  ; Increment Y for next loop
+  LDA pointerLo
+  CLC
+  ADC #$08                    ; 8 bytes for 2 tile wide sprites
+  STA pointerLo
+  DEX
+  BNE HideSpriteLoop          ; Continue loop for next row
   RTS
 
 ; Update sprite layout for a group of sprites
