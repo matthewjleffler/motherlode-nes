@@ -175,27 +175,15 @@ ReadControllerButton:
   ROL temp                    ; bit0 <- carry
   DEX                         ; see if this loop is done
   BNE ReadControllerButton    ; continue loop
-  LDA temp                    ; get ready to store the temp buttons
-
-
-  CPY #$01                    ; Second controller?
-  BEQ StoreController2
-; Store controller 1
-  LDA temp                    ; Load this frame's state
-  EOR buttons1                ; EOR to get changes
-  AND temp                    ; AND to keep only newly on bits
-  STA buttons1fresh           ; Store results in freshness var
-  LDA temp                    ; Now store this frame's state in buttons2
-  STA buttons1
-  INY                         ; Increment Y for next controller
-  JMP ReadControllerLoop
-StoreController2:
-  LDA temp                    ; Load this frame's state
-  EOR buttons2                ; EOR to get changes
-  AND temp                    ; AND to keep only newly on bits
-  STA buttons2fresh           ; Store results in freshness var
-  LDA temp                    ; Now store this frame's state in buttons2
-  STA buttons2
+  LDA temp                    ; Load this frame's state to calculate freshness
+  EOR buttons1, y             ; EOR to get changes
+  AND temp                    ; AND to only keep newly on bits
+  STA buttons1fresh, y        ; Store the freshness var
+  LDA temp                    ; Now store actual held state back
+  STA buttons1, y
+  INY
+  CPY #$01                    ; Are we on controller 2?
+  BEQ ReadControllerLoop
   RTS
 
 TestPlayerMove:
