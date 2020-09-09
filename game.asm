@@ -282,7 +282,8 @@ ShootBullet:
   ; TODO set pos, etc
   ; TODO button fresh
   LDX #BULLETCOUNT
-  LDY #$00                    ; Flag for whether or not we shot
+  LDY #$00                    ; Flag for whether or not we shot, and pointer
+  STY bulletCount             ; Count pointers for current bullet
 FindFreeBullet:
   JSR GetBulletState
   CMP #BULL_OFF               ; If the bullet is off? Turn it on
@@ -293,8 +294,32 @@ FindFreeBullet:
   LDA #BULL_MOV               ; Set the current bullet state to moving
   STA temp
   JSR SetBulletState
+  ; Set bullet position
+  LDA #SPRITEHI               ; Setup pointers for player
+  STA pointerHi
+  LDA #PLAYER
+  STA pointerLo
+  LDA [pointerLo], Y          ; Store player Y
+  STA spriteLayoutOriginY
+  LDY #SPRITEX
+  LDA [pointerLo], Y          ; Store player X
+  STA spriteLayoutOriginX
+  LDA #PBULLET0               ; Point at selected bullet
+  CLC
+  ADC bulletCount
+  STA pointerLo
+  LDY #$00
+  LDA spriteLayoutOriginY
+  STA [pointerLo], Y          ; Apply player Y
+  LDY #SPRITEX
+  LDA spriteLayoutOriginX
+  STA [pointerLo], Y          ; Apply player X
   LDY #$01                    ; Mark that we've already shot
 NextBullet:
+  LDA bulletCount
+  CLC
+  ADC #$10                    ; Move to next bullet pointer
+  STA bulletCount
   DEX                         ; Decrement counter
   CPX #0
   BNE FindFreeBullet          ; If not 0, check next bullet, or cycle the state
@@ -302,6 +327,20 @@ NextBullet:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Sprite Updates
+
+MovePointerOneRow:
+  LDA pointerLo
+  CLC
+  ADC #$08                    ; 8 bytes for 2 4 byte sprites
+  STA pointerLo
+  RTS
+
+MovePointerTwoRows:
+  LDA pointerLo
+  CLC
+  ADC #$10                    ; 16 bytes for 4 4 byte sprites
+  STA pointerLo
+  RTS
 
 UpdatePlayerSprites:
   LDX #$03                    ; Player is 3 tiles high
@@ -376,10 +415,7 @@ UpdateSingleBullet:
   BEQ BulletTravel
 
 ; BulletStateOff              ; Bullet is already off, and hidden
-  LDA pointerLo               ; Move pointer to next bullet
-  CLC
-  ADC #$08
-  STA pointerLo
+  JSR MovePointerTwoRows      ; Move pointer to next bullet
   RTS
 
 ; Bullet is dead, hide it, then set state to off
@@ -514,10 +550,7 @@ UpdateBulletPosLoop:
   CMP #BULL_MOV
   BEQ MoveBullet
 ; No Change
-  LDA pointerLo               ; Move pointer to next bullet
-  CLC
-  ADC #$08
-  STA pointerLo
+  JSR MovePointerTwoRows      ; Move pointer to next bullet
   JMP IncrementBulletPosLoop
 
 MoveBullet:
@@ -552,17 +585,14 @@ IncrementBulletPosLoop:
 ; Expects X to be set to sprite height in tiles
 ; Expects all sprites to be 2 tiles wide
 HideSpriteLayout:
-  LDY #$00                    ; Store sprite y origin offset
   LDA #$FF                    ; Store "offscreen" FF in sprite y
 HideSpriteLoop:
+  LDY #$00                    ; Store sprite y origin offset
   STA [pointerLo], Y          ; Set Y's
   LDY #$04                    ; Next sprite's Y
   STA [pointerLo], Y
   ; Increment Y for next loop
-  LDA pointerLo
-  CLC
-  ADC #$08                    ; 8 bytes for 2 tile wide sprites
-  STA pointerLo
+  JSR MovePointerOneRow
   DEX
   BNE HideSpriteLoop          ; Continue loop for next row
   RTS
@@ -580,24 +610,21 @@ UpdateSpriteLayout:
   STA spriteLayoutOriginX
 UpdateSpriteLoop:
   ; Set Y's
-  LDY #$00                    ; Row y0
   LDA spriteLayoutOriginY     ; Set sprite Y's
+  LDY #$00                    ; Row y0
   STA [pointerLo], Y
   LDY #$04                    ; Row y1
   STA [pointerLo], Y
   ; Set X's
-  LDY #SPRITEX                ; Set sprite X's
   LDA spriteLayoutOriginX
+  LDY #SPRITEX                ; Set sprite X's
   STA [pointerLo], Y
   CLC
   ADC #TILEW
   LDY #SPRITEX+4              ; Second sprite's X
   STA [pointerLo], Y
   ; Increment Y for next loop
-  LDA pointerLo   ; Increment low address for next loop
-  CLC
-  ADC #$08                    ; 8 bytes for 2 tile wide sprites
-  STA pointerLo
+  JSR MovePointerOneRow
   LDA spriteLayoutOriginY     ; Increment row Y
   CLC
   ADC #TILEW
