@@ -176,12 +176,25 @@ ReadControllerButton:
   DEX                         ; see if this loop is done
   BNE ReadControllerButton    ; continue loop
   LDA temp                    ; get ready to store the temp buttons
+
+
   CPY #$01                    ; Second controller?
   BEQ StoreController2
+; Store controller 1
+  LDA temp                    ; Load this frame's state
+  EOR buttons1                ; EOR to get changes
+  AND temp                    ; AND to keep only newly on bits
+  STA buttons1fresh           ; Store results in freshness var
+  LDA temp                    ; Now store this frame's state in buttons2
   STA buttons1
   INY                         ; Increment Y for next controller
   JMP ReadControllerLoop
 StoreController2:
+  LDA temp                    ; Load this frame's state
+  EOR buttons2                ; EOR to get changes
+  AND temp                    ; AND to keep only newly on bits
+  STA buttons2fresh           ; Store results in freshness var
+  LDA temp                    ; Now store this frame's state in buttons2
   STA buttons2
   RTS
 
@@ -273,14 +286,30 @@ SubSpeedFast:
   RTS
 
 TestShootBullet:
-  LDA buttons1
+  LDA buttons1fresh
   AND #BUTTONA
   BNE ShootBullet
   RTS
 ShootBullet:
-  ; TODO shoot an available bullet, set pos, etc
-  LDA #$01
-  STA playerBulletStates
+  ; TODO set pos, etc
+  ; TODO button fresh
+  LDX #BULLETCOUNT
+  LDY #$00                    ; Flag for whether or not we shot
+FindFreeBullet:
+  JSR GetBulletState
+  CMP #BULL_OFF               ; If the bullet is off? Turn it on
+  BNE NextBullet
+; Found a free bullet
+  CPY #$00
+  BNE NextBullet              ; Have we already shot a bullet?
+  LDA #BULL_MOV               ; Set the current bullet state to moving
+  STA temp
+  JSR SetBulletState
+  LDY #$01                    ; Mark that we've already shot
+NextBullet:
+  DEX                         ; Decrement counter
+  CPX #0
+  BNE FindFreeBullet          ; If not 0, check next bullet, or cycle the state
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

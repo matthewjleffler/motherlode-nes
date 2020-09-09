@@ -8,6 +8,8 @@ pointerHi               .rs 1 ; low byte first, high byte immediately after
 temp                    .rs 1 ; temp reusable byte
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
+buttons1fresh           .rs 1 ; controller 1 buttons fresh
+buttons2fresh           .rs 1 ; controller 2 buttons fresh
 animTick                .rs 1 ; Slows down animation counting
 bulletAnim              .rs 1 ; Bullet anim state
 spriteLayoutOriginY     .rs 1 ; Y of sprite origin
