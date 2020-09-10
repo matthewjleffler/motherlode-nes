@@ -53,11 +53,12 @@ BUTTONR     = %00000001
 STATEMASK   = %00000011       ; Mask for lower two bits
 HICLEAR     = %00111111       ; Mask to clear high bits
 BULLETCOUNT = $04             ; Number of bullets to render
+BULLETEDGE  = $08             ; If the bullet ends up within this band, despawn
 
 ; Move Speed
 SPDSLOW     = $01             ; 1 pixel per frame
 SPDFAST     = $03             ; 3 pixels per frame
-SPDBULLET   = $05
+SPDBULLET   = $05             ; 5 pixels per frame
 
 ; Sprite lo addresses
 EBULLET0    = $00             ; Size: 4*8=32
@@ -69,7 +70,7 @@ ENEMY0      = $80             ; Size: 4*4*?
 PLAYERSIZE  = $18             ; player byte size
 
 ; Animation
-BULLETNOFL  = %00000001
+BULLETNOFL  = %00000001       ; Bullet attributes with flipping and color
 BULLETFLX   = %01000001
 BULLETFLY   = %10000001
 BULLETFLXY  = %11000001

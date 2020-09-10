@@ -425,12 +425,14 @@ HideBullet:
   JSR SetBulletState
   LDX #02                     ; Sprite is 2 tiles high
   JSR HideSpriteLayout        ; Hide sprite, pointer is advanced
+  RTS
 
 ; Bullet is exploding, animate the explosion and then set state to off
 BulletStateExploding:
   ; TODO - for now just move the pointer ahead for the next bullet
   ; TODO - animate exploding
   JSR HideBullet
+  RTS
 
 BulletTravel:
   LDA bulletAnim              ; Test animation state
@@ -561,14 +563,27 @@ MoveBullet:
   CLC
   ADC #SPDBULLET
   STA [pointerLo], Y
+  STA spriteLayoutOriginY
   LDY #SPRITEX
   LDA [pointerLo], Y
   SEC
   SBC #SPDBULLET
   STA [pointerLo], Y
+  STA spriteLayoutOriginX
   ; TODO test collision
-
-  ; Update bullet sprites
+  ; Test Bounds
+  LDA spriteLayoutOriginX     ; Are we within the bullet edge x?
+  CMP #BULLETEDGE
+  BCC BulletLeftEdge
+  LDA spriteLayoutOriginY     ; Are we within the bullet edge y?
+  CMP #BULLETEDGE
+  BCC BulletLeftEdge
+  JMP UpdateBulletSprites     ; Normal sprite update
+BulletLeftEdge:
+  JSR HideBullet
+  JMP IncrementBulletPosLoop
+  ; TODO why do bullet bottoms stick around? They should be hidden
+UpdateBulletSprites:
   LDX #$02                    ; Sprite is 2 tiles high
   JSR UpdateSpriteLayout      ; Pointer is in correct spot already, and will
                               ; be incremented to next bullet by the layout
@@ -585,14 +600,17 @@ IncrementBulletPosLoop:
 ; Expects X to be set to sprite height in tiles
 ; Expects all sprites to be 2 tiles wide
 HideSpriteLayout:
-  LDA #$FF                    ; Store "offscreen" FF in sprite y
+  LDA #$FE                    ; Store "offscreen" FF in sprite y
 HideSpriteLoop:
   LDY #$00                    ; Store sprite y origin offset
   STA [pointerLo], Y          ; Set Y's
+  LDY #SPRITEX
+  STA [pointerLo], Y
   LDY #$04                    ; Next sprite's Y
   STA [pointerLo], Y
-  ; Increment Y for next loop
-  JSR MovePointerOneRow
+  LDY #SPRITEX+4
+  STA [pointerLo], Y
+  JSR MovePointerOneRow       ; Increment pointer for next loop
   DEX
   BNE HideSpriteLoop          ; Continue loop for next row
   RTS
