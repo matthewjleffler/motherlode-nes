@@ -438,14 +438,14 @@ DoBulletMove:
   ; TODO direction
   LDY #$00                    ; Load sprite Y
   LDA [pointerLo], Y
-  CLC
-  ADC #SPDBULLET              ; Move Y
+  SEC
+  SBC #SPDBULLET              ; Move Y
   STA [pointerLo], Y          ; Assign Y to sprite Y
   STA spriteLayoutOriginY     ; Save sprite Y for collision
   LDY #SPRITEX                ; Load sprite X
   LDA [pointerLo], Y
-  SEC
-  SBC #SPDBULLET              ; Move X
+  CLC
+  ADC #SPDBULLET              ; Move X
   STA [pointerLo], Y          ; Assign X to sprite X
   STA spriteLayoutOriginX     ; Save sprite X for collision
   ; TODO collision
@@ -453,9 +453,13 @@ DoBulletMove:
   LDA spriteLayoutOriginX     ; Are we within the bullet edge X?
   CMP #BULLETEDGE
   BCC BulletLeftScreen
+  CMP #BULLETEDGEW
+  BCS BulletLeftScreen
   LDA spriteLayoutOriginY     ; Are we within the bullet edge Y?
   CMP #BULLETEDGE
   BCC BulletLeftScreen
+  CMP #BULLETEDGEW
+  BCS BulletLeftScreen
   JMP UpdateBulletLayout      ; Still on screen, normal sprite update
 BulletLeftScreen:
   JMP HideBullet              ; We left the screen, bullet is dead

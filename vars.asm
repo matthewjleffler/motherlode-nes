@@ -53,7 +53,8 @@ BUTTONR     = %00000001
 STATEMASK   = %00000011       ; Mask for lower two bits
 HICLEAR     = %00111111       ; Mask to clear high bits
 BULLETCOUNT = $04             ; Number of bullets to render
-BULLETEDGE  = $08             ; If the bullet ends up within this band, despawn
+BULLETEDGE  = $06             ; 1 pixel wider than movement speed
+BULLETEDGEW = $FF - BULLETEDGE - $10 ; Right hand, bottom, includes bull. width
 
 ; Move Speed
 SPDSLOW     = $01             ; 1 pixel per frame
