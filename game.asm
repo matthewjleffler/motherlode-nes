@@ -380,70 +380,104 @@ SetBulletState:
   STA playerBulletStates      ; Store result
   RTS
 
-UpdateBullets:
-  LDA #SPRITEHI               ; point the high pointer at SPRITEHI for bullets
-  STA pointerHi
-  LDA #STATEMASK
-  AND animTick
-  BEQ UpdateBulletAnim        ; Animate every 4 ticks, if the AND is 0
-  JSR UpdateBulletPos
-  RTS
-
-UpdateBulletAnim:
-  LDX bulletAnim              ; Increment bullet anim
-  INX
-  STX bulletAnim
-  LDX #0                      ; Start the bullet count
-  STX bulletCount
-  LDA #PBULLET0               ; point the low pointer at the first bullet
-  STA pointerLo
-UpdateBulletAnimLoop:
-  JSR UpdateSingleBullet
-  LDX bulletCount             ; Count that we've updated a bullet
-  INX
-  STX bulletCount
-  CPX #BULLETCOUNT
-  BNE UpdateBulletAnimLoop    ; Update next bullet, pointerLo has been updated
-                              ; to the correct spot by applying bullet attr
-  RTS
-
-UpdateSingleBullet:
-  JSR GetBulletState          ; Get bullet state
-  CMP #BULL_EXP               ; Exploding
-  BEQ BulletStateExploding
-  CMP #BULL_MOV               ; Animating and moving
-  BEQ BulletTravel
-
-; BulletStateOff              ; Bullet is already off, and hidden
-  JSR MovePointerTwoRows      ; Move pointer to next bullet
-  RTS
-
 ; Bullet is dead, hide it, then set state to off
+; Expects pointerLo to be pointing at sprite0 y of current bullet
 HideBullet:
   LDA #BULL_OFF               ; Set state to off
   STA temp
   JSR SetBulletState
   LDX #02                     ; Sprite is 2 tiles high
   JSR HideSpriteLayout        ; Hide sprite, pointer is advanced
+  JMP IncrementBulletLoop     ; Continue loop, pointer updated by hide
+
+UpdateBullets:
+  LDA #SPRITEHI               ; point the hi pointer at SPRITEHI for bullets
+  STA pointerHi
+  LDA #PBULLET0               ; point the lo pointer at PBULLET0
+  STA pointerLo
+  LDX #$00                    ; Zero out bullet count
+  STX bulletCount
+  LDA #STATEMASK              ; Are we on the anim tick? Increment the
+  AND animTick                ; bullet animation counter if so
+  BEQ CountBulletAnim
+  JMP UpdateBulletLoop
+CountBulletAnim:
+  LDX bulletAnim              ; Increment bullet anim counter
+  INX
+  STX bulletAnim
+UpdateBulletLoop:
+  JSR GetBulletState          ; Temp now stores bullet state
+  CMP #BULL_EXP               ; Are we exploding?
+  BEQ UpdateBulletExplode
+  CMP #BULL_MOV               ; Are we moving?
+  BEQ UpdateBulletMove
+  ; Other bullet states do nothing
+  JMP IncrementBulletPointer
+UpdateBulletExplode:
+  JMP DoBulletExplode
+UpdateBulletMove:
+  JMP DoBulletMove
+IncrementBulletPointer:       ; We did nothing to the bullet, move the pointer
+  JSR MovePointerTwoRows      ; To the next bullet
+IncrementBulletLoop:
+  LDX bulletCount
+  INX
+  STX bulletCount
+  CPX #BULLETCOUNT            ; Are we done with the loop?
+  BNE UpdateBulletLoop
   RTS
 
-; Bullet is exploding, animate the explosion and then set state to off
-BulletStateExploding:
-  ; TODO - for now just move the pointer ahead for the next bullet
-  ; TODO - animate exploding
-  JSR HideBullet
-  RTS
+; TODO implement
+DoBulletExplode:
+  JSR MovePointerTwoRows
+  JMP IncrementBulletLoop
 
-BulletTravel:
-  LDA bulletAnim              ; Test animation state
+DoBulletMove:
+  LDA pointerLo               ; Store the current bullet pointer in bulletFrame
+  STA bulletFrame             ; since it's not used until later when we anim.
+  ; TODO direction
+  LDY #$00                    ; Load sprite Y
+  LDA [pointerLo], Y
+  CLC
+  ADC #SPDBULLET              ; Move Y
+  STA [pointerLo], Y          ; Assign Y to sprite Y
+  STA spriteLayoutOriginY     ; Save sprite Y for collision
+  LDY #SPRITEX                ; Load sprite X
+  LDA [pointerLo], Y
+  SEC
+  SBC #SPDBULLET              ; Move X
+  STA [pointerLo], Y          ; Assign X to sprite X
+  STA spriteLayoutOriginX     ; Save sprite X for collision
+  ; TODO collision
+  ; Test Bounds
+  LDA spriteLayoutOriginX     ; Are we within the bullet edge X?
+  CMP #BULLETEDGE
+  BCC BulletLeftScreen
+  LDA spriteLayoutOriginY     ; Are we within the bullet edge Y?
+  CMP #BULLETEDGE
+  BCC BulletLeftScreen
+  JMP UpdateBulletLayout      ; Still on screen, normal sprite update
+BulletLeftScreen:
+  JMP HideBullet              ; We left the screen, bullet is dead
+UpdateBulletLayout:
+  LDX #$02                    ; Bullet is 2 tiles tall
+  JSR UpdateSpriteLayout      ; Update sprite layout
+  LDA #STATEMASK              ; Check again if we're in an anim tick, if so
+  AND animTick                ; update the anim, otherwise we're done
+  BEQ UpdateBulletAnim
+  JMP IncrementBulletLoop
+UpdateBulletAnim:
+  LDA bulletFrame             ; Move pointer back to where we stored it
+  STA pointerLo               ; So we can update attributes
+  LDA bulletAnim              ; Load the animation state
   CLC
   ADC bulletCount             ; Add an offset of the current bullet count
-  AND #STATEMASK              ; Check the bullet state
-  CMP #$03                    ; State3
+  AND #STATEMASK              ; Check the bullet frame
+  CMP #$03                    ; Frame 3
   BEQ BulletAnim3
-  CMP #$02                    ; State2
+  CMP #$02                    ; Frame 2
   BEQ BulletAnim2
-  CMP #$01                    ; State1
+  CMP #$01                    ; Frame 1
   BEQ BulletAnim1
 ;BulletAnim0
   JMP AssignBulletAnim0
@@ -468,8 +502,7 @@ AssignBulletAnim0:
   STA bulletAttr+2
   LDA #BULLETFLXY             ; BR flip xy
   STA bulletAttr+3
-  JSR ApplyBulletSettings
-  RTS
+  JMP ApplyBulletSettings
 
 AssignBulletAnim1:
   LDA #BULLFRAME1             ; Assign frame 1 to TL and BR tiles
@@ -484,8 +517,7 @@ AssignBulletAnim1:
   LDA #BULLETFLXY             ; BL and BR flip xy
   STA bulletAttr+2
   STA bulletAttr+3
-  JSR ApplyBulletSettings
-  RTS
+  JMP ApplyBulletSettings
 
 AssignBulletAnim2:
   LDA #BULLFRAME3             ; Assign frame 3 to all tiles
@@ -501,8 +533,7 @@ AssignBulletAnim2:
   STA bulletAttr+2
   LDA #BULLETFLXY             ; BR flip xy
   STA bulletAttr+3
-  JSR ApplyBulletSettings
-  RTS
+  JMP ApplyBulletSettings
 
 AssignBulletAnim3:
   LDA #BULLFRAME2             ; Assign frame 2 to TL and BR tiles
@@ -517,8 +548,7 @@ AssignBulletAnim3:
   LDA #BULLETFLY              ; BL and BR flip y
   STA bulletAttr+2
   STA bulletAttr+3
-  JSR ApplyBulletSettings
-  RTS
+  JMP ApplyBulletSettings
 
 ; Takes pre-filled bullet frames and attributes and applies them to the
 ; current bullet pointer
@@ -538,81 +568,21 @@ ApplyBulletSettingsLoop:
   INX
   CPX #$04                    ; Check whether we're done with the loop
   BNE ApplyBulletSettingsLoop
-  RTS
-
-UpdateBulletPos:
-  LDA #SPRITEHI               ; Set pointer to sprite hi
-  STA pointerHi
-  LDA #PBULLET0               ; Set pointerLo to first bullet
-  STA pointerLo
-  LDX #0                      ; Set up counter
-  STX bulletCount
-UpdateBulletPosLoop:
-  JSR GetBulletState          ; Get bullet state
-  CMP #BULL_MOV
-  BEQ MoveBullet
-; No Change
-  JSR MovePointerTwoRows      ; Move pointer to next bullet
-  JMP IncrementBulletPosLoop
-
-MoveBullet:
-  ; Move bullet
-  ; TODO move direction
-  LDY #$00
-  LDA [pointerLo], Y
-  CLC
-  ADC #SPDBULLET
-  STA [pointerLo], Y
-  STA spriteLayoutOriginY
-  LDY #SPRITEX
-  LDA [pointerLo], Y
-  SEC
-  SBC #SPDBULLET
-  STA [pointerLo], Y
-  STA spriteLayoutOriginX
-  ; TODO test collision
-  ; Test Bounds
-  LDA spriteLayoutOriginX     ; Are we within the bullet edge x?
-  CMP #BULLETEDGE
-  BCC BulletLeftEdge
-  LDA spriteLayoutOriginY     ; Are we within the bullet edge y?
-  CMP #BULLETEDGE
-  BCC BulletLeftEdge
-  JMP UpdateBulletSprites     ; Normal sprite update
-BulletLeftEdge:
-  JSR HideBullet
-  JMP IncrementBulletPosLoop
-  ; TODO why do bullet bottoms stick around? They should be hidden
-UpdateBulletSprites:
-  LDX #$02                    ; Sprite is 2 tiles high
-  JSR UpdateSpriteLayout      ; Pointer is in correct spot already, and will
-                              ; be incremented to next bullet by the layout
-IncrementBulletPosLoop:
-  LDX bulletCount
-  INX
-  STX bulletCount
-  CPX #BULLETCOUNT
-  BNE UpdateBulletPosLoop
-  RTS
+  JMP IncrementBulletLoop
 
 ; Sets all sprites to hidden for a given layout
 ; Expects pointerLo to be set for the top left sprite address
 ; Expects X to be set to sprite height in tiles
 ; Expects all sprites to be 2 tiles wide
 HideSpriteLayout:
-  LDA #$FE                    ; Store "offscreen" FF in sprite y
-HideSpriteLoop:
+  LDA #$FF                    ; Store "offscreen" FF in sprite y
   LDY #$00                    ; Store sprite y origin offset
   STA [pointerLo], Y          ; Set Y's
-  LDY #SPRITEX
-  STA [pointerLo], Y
   LDY #$04                    ; Next sprite's Y
-  STA [pointerLo], Y
-  LDY #SPRITEX+4
   STA [pointerLo], Y
   JSR MovePointerOneRow       ; Increment pointer for next loop
   DEX
-  BNE HideSpriteLoop          ; Continue loop for next row
+  BNE HideSpriteLayout          ; Continue loop for next row
   RTS
 
 ; Update sprite layout for a group of sprites
@@ -627,22 +597,19 @@ UpdateSpriteLayout:
   LDA [pointerLo], Y
   STA spriteLayoutOriginX
 UpdateSpriteLoop:
-  ; Set Y's
   LDA spriteLayoutOriginY     ; Set sprite Y's
   LDY #$00                    ; Row y0
   STA [pointerLo], Y
   LDY #$04                    ; Row y1
   STA [pointerLo], Y
-  ; Set X's
-  LDA spriteLayoutOriginX
+  LDA spriteLayoutOriginX     ; Set X's
   LDY #SPRITEX                ; Set sprite X's
   STA [pointerLo], Y
   CLC
   ADC #TILEW
   LDY #SPRITEX+4              ; Second sprite's X
   STA [pointerLo], Y
-  ; Increment Y for next loop
-  JSR MovePointerOneRow
+  JSR MovePointerOneRow       ; Increment Y for next loop
   LDA spriteLayoutOriginY     ; Increment row Y
   CLC
   ADC #TILEW
