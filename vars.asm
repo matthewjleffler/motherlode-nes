@@ -23,6 +23,14 @@ playerBulletStates      .rs 1 ; On/off states for 4 player bullets
                               ; 10 - explosion?
                               ; 11 - unused ??
                               ; 44332211
+playerXs                .rs 1 ; Player subpixel in 1/256ths
+playerYs                .rs 1 ; Player subpixel in 1/256ths
+playerBulletXs          .rs 4 ; 4 subpixels
+playerBulletYs          .rs 4 ; 4 subpixels
+enemyBulletXs           .rs 8 ; 8 subpixels
+enemyBuleltYs           .rs 8 ; 8 subpixels
+enemyXs                 .rs 6 ; 6 subpixels
+enemyYs                 .rs 6 ; subpixles
 ; multFactor              .rs 1 ; Multiplication factor
 ; multRes1                .rs 1 ; Multiplication result 1
 ; multRes2                .rs 1 ; Multiplication result 2
@@ -57,18 +65,20 @@ BULLETEDGE  = $06             ; 1 pixel wider than movement speed
 BULLETEDGEW = $FF - BULLETEDGE - $10 ; Right hand, bottom, includes bull. width
 
 ; Move Speed
-SPDSLOW     = $01             ; 1 pixel per frame
-SPDFAST     = $03             ; 3 pixels per frame
+PSPEEDLO    = 64              ; 64/256 = .25
+PSPEEDHI    = 1               ; 2 pixels per frame
 SPDBULLET   = $05             ; 5 pixels per frame
 
-; Sprite lo addresses
-EBULLET0    = $00             ; Size: 4*8=32
-PBULLET0    = $20             ; Size: 4*4*4=64
-PLAYER      = $60             ; Size: 4*6=24
-ITEM        = $78             ; Size: 4*4=8
-ENEMY0      = $80             ; Size: 4*4*?
+; Sprite lo addresses         ;                         n * s = t
+EBULLET0    = $00             ; Size: 4 * 8     =  32   8 * 1 = 8
+PBULLET0    = $20             ; Size: 4 * 4 * 4 =  64   4 * 4 = 16
+PLAYER      = $60             ; Size: 4 * 6     =  24   6 * 1 = 6
+ITEM        = $78             ; Size: 4 * 4     =   8   1 * 4 = 4
+ENEMY0      = $80             ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
+                              ;                 = 232         = 58 / 64
 
 PLAYERSIZE  = $18             ; player byte size
+ENEMYSIZE   = $10             ; enemy byte size
 
 ; Animation
 BULLETNOFL  = %00000001       ; Bullet attributes with flipping and color

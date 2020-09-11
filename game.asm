@@ -69,7 +69,7 @@ LoadPalettesLoop:
 
 LoadSprites:
   LDX #$00                    ; start at 0
-  LDA #$FF                    ; fill with empty bytes
+  LDA #$FF                    ; fill with FF so sprites are hidden
 LoadSpriteLoop:
   STA $0200, X
   INX
@@ -88,6 +88,20 @@ AssignPlayerSpriteLoop:
   INY
   CPY #PLAYERSIZE             ; Loop until we have finished all the player bytes
   BNE AssignPlayerSpriteLoop
+
+; TODO move this to gameplay code
+AssignEnemySprites:
+  LDA #SPRITEHI               ; setup enemy skeleton sprite
+  STA pointerHi
+  LDA #ENEMY0
+  STA pointerLo
+  LDY #$00
+AssignEnemySpriteLoop:
+  LDA skelsprites, Y
+  STA [pointerLo], Y
+  INY
+  CPY #ENEMYSIZE
+  BNE AssignEnemySpriteLoop
 
 LoadBackground:
   LDA $2002                   ; read PPU status to reset the high/low latch
@@ -205,9 +219,13 @@ TestMoveLeft:
   BNE MoveLeft
   RTS
 MoveLeft:
-  LDA [pointerLo], Y          ; Sprite 0 x position
-  JSR SubSpeed
-  STA [pointerLo], Y
+  LDA playerXs                ; Load player X subpixel
+  SEC
+  SBC #PSPEEDLO               ; Subtract lo speed
+  STA playerXs                ; Store result
+  LDA [pointerLo], Y          ; Load X position
+  SBC #PSPEEDHI               ; Subtract hi speed with carry
+  STA [pointerLo], Y          ; Store result
   RTS
 
 TestMoveRight:
@@ -216,9 +234,13 @@ TestMoveRight:
   BNE MoveRight
   RTS
 MoveRight:
-  LDA [pointerLo], Y
-  JSR AddSpeed
-  STA [pointerLo], Y
+  LDA playerXs                ; Load player X subpixel
+  CLC
+  ADC #PSPEEDLO               ; Add lo speed
+  STA playerXs                ; Store result
+  LDA [pointerLo], Y          ; Load X position
+  ADC #PSPEEDHI               ; Add hi speed with carry
+  STA [pointerLo], Y          ; Store result
   RTS
 
 TestMoveUp:
@@ -227,9 +249,13 @@ TestMoveUp:
   BNE MoveUp
   RTS
 MoveUp:
-  LDA [pointerLo], Y
-  JSR SubSpeed
-  STA [pointerLo], Y
+  LDA playerYs                ; Load player Y subpixel
+  SEC
+  SBC #PSPEEDLO               ; Subtract lo speed
+  STA playerYs                ; Store result
+  LDA [pointerLo], Y          ; Load Y position
+  SBC #PSPEEDHI               ; Subtract hi speed with carry
+  STA [pointerLo], Y          ; Store result
   RTS
 
 TestMoveDown:
@@ -238,39 +264,13 @@ TestMoveDown:
   BNE MoveDown
   RTS
 MoveDown:
-  LDA [pointerLo], Y
-  JSR AddSpeed
-  STA [pointerLo], Y
-  RTS
-
-AddSpeed:
-  TAX                         ; Put sprite location A in x
-  LDA buttons1
-  AND #BUTTONB                ; Are we holding B?
+  LDA playerYs                ; Load player Y subpixel
   CLC
-  BNE AddSpeedFast
-; AddSpeedSlow
-  TXA                         ; Move sprite location back to A
-  ADC #SPDSLOW                ; Add slow
-  RTS
-AddSpeedFast:
-  TXA                         ; Move sprite location back to A
-  ADC #SPDFAST                ; Add fast
-  RTS
-
-SubSpeed:
-  TAX                         ; Put sprite location A in x
-  LDA buttons1
-  AND #BUTTONB                ; Are we holding B?
-  SEC
-  BNE SubSpeedFast
-; SubSpeedSlow
-  TXA                         ; Move sprite location back to A
-  SBC #SPDSLOW                ; Sub slow
-  RTS
-SubSpeedFast:
-  TXA                         ; Move sprite location back to A
-  SBC #SPDFAST                ; Sub fast
+  ADC #PSPEEDLO               ; Add lo speed
+  STA playerYs                ; Store result
+  LDA [pointerLo], Y          ; Load Y position
+  ADC #PSPEEDHI               ; Add hi speed with carry
+  STA [pointerLo], Y          ; Store result
   RTS
 
 TestShootBullet:
@@ -586,7 +586,7 @@ HideSpriteLayout:
   STA [pointerLo], Y
   JSR MovePointerOneRow       ; Increment pointer for next loop
   DEX
-  BNE HideSpriteLayout          ; Continue loop for next row
+  BNE HideSpriteLayout        ; Continue loop for next row
   RTS
 
 ; Update sprite layout for a group of sprites
