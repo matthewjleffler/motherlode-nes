@@ -219,13 +219,10 @@ TestMoveLeft:
   BNE MoveLeft
   RTS
 MoveLeft:
-  LDA playerXs                ; Load player X subpixel
-  SEC
-  SBC #PSPEEDLO               ; Subtract lo speed
-  STA playerXs                ; Store result
-  LDA [pointerLo], Y          ; Load X position
-  SBC #PSPEEDHI               ; Subtract hi speed with carry
-  STA [pointerLo], Y          ; Store result
+  LDA #playerXs
+  STA pointerSub
+  JSR StorePlayerSpeed
+  JSR SubPixelSubtract
   RTS
 
 TestMoveRight:
@@ -234,13 +231,10 @@ TestMoveRight:
   BNE MoveRight
   RTS
 MoveRight:
-  LDA playerXs                ; Load player X subpixel
-  CLC
-  ADC #PSPEEDLO               ; Add lo speed
-  STA playerXs                ; Store result
-  LDA [pointerLo], Y          ; Load X position
-  ADC #PSPEEDHI               ; Add hi speed with carry
-  STA [pointerLo], Y          ; Store result
+  LDA #playerXs
+  STA pointerSub
+  JSR StorePlayerSpeed
+  JSR SubPixelAdd
   RTS
 
 TestMoveUp:
@@ -249,13 +243,10 @@ TestMoveUp:
   BNE MoveUp
   RTS
 MoveUp:
-  LDA playerYs                ; Load player Y subpixel
-  SEC
-  SBC #PSPEEDLO               ; Subtract lo speed
-  STA playerYs                ; Store result
-  LDA [pointerLo], Y          ; Load Y position
-  SBC #PSPEEDHI               ; Subtract hi speed with carry
-  STA [pointerLo], Y          ; Store result
+  LDA #playerYs
+  STA pointerSub
+  JSR StorePlayerSpeed
+  JSR SubPixelSubtract
   RTS
 
 TestMoveDown:
@@ -264,13 +255,10 @@ TestMoveDown:
   BNE MoveDown
   RTS
 MoveDown:
-  LDA playerYs                ; Load player Y subpixel
-  CLC
-  ADC #PSPEEDLO               ; Add lo speed
-  STA playerYs                ; Store result
-  LDA [pointerLo], Y          ; Load Y position
-  ADC #PSPEEDHI               ; Add hi speed with carry
-  STA [pointerLo], Y          ; Store result
+  LDA #playerYs
+  STA pointerSub
+  JSR StorePlayerSpeed
+  JSR SubPixelAdd
   RTS
 
 TestShootBullet:
@@ -620,6 +608,36 @@ UpdateSpriteLoop:
   STA spriteLayoutOriginY
   DEX
   BNE UpdateSpriteLoop
+  RTS
+
+StorePlayerSpeed:
+  LDX #1
+  LDA #PSPEEDLO
+  STA speed
+  LDA #PSPEEDHI
+  STA speed, x
+  RTS
+
+SubPixelAdd:
+  LDX #1
+  LDA [pointerSub], Y       ; Load player Y subpixel
+  CLC
+  ADC speed                   ; Add lo speed
+  STA [pointerSub], Y       ; Store result
+  LDA [pointerLo], Y          ; Load Y position
+  ADC speed, X                ; Add hi speed with carry
+  STA [pointerLo], Y          ; Store result
+  RTS
+
+SubPixelSubtract:
+  LDX #1
+  LDA [pointerSub], Y       ; Load subpixel value
+  SEC
+  SBC speed                   ; Subtract lo speed
+  STA [pointerSub], Y       ; Store subpixel value
+  LDA [pointerLo], Y          ; Load pixel value
+  SBC speed, X                ; Add hi speed with carry
+  STA [pointerLo], Y          ; Store pixel value
   RTS
 
 ; 8-bit multiply

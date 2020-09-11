@@ -5,6 +5,9 @@
 
 pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
+pointerSub              .rs 1 ; pointer to subpixel
+pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
+speed                   .rs 2 ; lo/hi speeds
 temp                    .rs 1 ; temp reusable byte
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
@@ -23,6 +26,12 @@ playerBulletStates      .rs 1 ; On/off states for 4 player bullets
                               ; 10 - explosion?
                               ; 11 - unused ??
                               ; 44332211
+enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
+                              ; 00 - off
+                              ; 01 - on
+                              ; 10 - ??
+                              ; 11 - ??
+                              ; 88776655 44332211
 playerXs                .rs 1 ; Player subpixel in 1/256ths
 playerYs                .rs 1 ; Player subpixel in 1/256ths
 playerBulletXs          .rs 4 ; 4 subpixels
@@ -65,8 +74,8 @@ BULLETEDGE  = $06             ; 1 pixel wider than movement speed
 BULLETEDGEW = $FF - BULLETEDGE - $10 ; Right hand, bottom, includes bull. width
 
 ; Move Speed
-PSPEEDLO    = 64              ; 64/256 = .25
-PSPEEDHI    = 1               ; 2 pixels per frame
+PSPEEDLO    = 32              ; 64/256 = .25
+PSPEEDHI    = 2               ; 2 pixels per frame
 SPDBULLET   = $05             ; 5 pixels per frame
 
 ; Sprite lo addresses         ;                         n * s = t
