@@ -10,7 +10,7 @@
 ; Banks
   .bank 0
   .org $C000
-  .include "game.asm"         ; Main program
+  .include "game.asm"         ; Game loop
 
   .bank 1
   .include "tables.asm"       ; Tables, attributes, palettes, sprites

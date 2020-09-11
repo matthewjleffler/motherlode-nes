@@ -1,4 +1,4 @@
-; main.asm contains game lifecycle code
+; game.asm contains game lifecycle code
 ;     RESET and init
 ;     NMI interrupt
 ;     Game loop
@@ -267,8 +267,6 @@ TestShootBullet:
   BNE ShootBullet
   RTS
 ShootBullet:
-  ; TODO set pos, etc
-  ; TODO button fresh
   LDX #BULLETCOUNT
   LDY #$00                    ; Flag for whether or not we shot, and pointer
   STY bulletCount             ; Count pointers for current bullet
@@ -620,24 +618,24 @@ StorePlayerSpeed:
 
 SubPixelAdd:
   LDX #1
-  LDA [pointerSub], Y       ; Load player Y subpixel
+  LDA [pointerSub], Y         ; Load subpixel
   CLC
   ADC speed                   ; Add lo speed
-  STA [pointerSub], Y       ; Store result
-  LDA [pointerLo], Y          ; Load Y position
+  STA [pointerSub], Y         ; Store subpixel
+  LDA [pointerLo], Y          ; Load pixel
   ADC speed, X                ; Add hi speed with carry
   STA [pointerLo], Y          ; Store result
   RTS
 
 SubPixelSubtract:
   LDX #1
-  LDA [pointerSub], Y       ; Load subpixel value
+  LDA [pointerSub], Y         ; Load subpixel
   SEC
   SBC speed                   ; Subtract lo speed
-  STA [pointerSub], Y       ; Store subpixel value
-  LDA [pointerLo], Y          ; Load pixel value
+  STA [pointerSub], Y         ; Store subpixel
+  LDA [pointerLo], Y          ; Load pixel
   SBC speed, X                ; Add hi speed with carry
-  STA [pointerLo], Y          ; Store pixel value
+  STA [pointerLo], Y          ; Store pixel
   RTS
 
 ; 8-bit multiply

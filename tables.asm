@@ -118,7 +118,7 @@ attributes:
 palette:
   ;   Background palette
   .db $00,$22,$01,$23,  $00,$13,$01,$23,  $00,$30,$21,$0F,  $00,$27,$17,$0F
-  ;   Player            Player Bull.      Enemey            Enemy Bullets
+  ;   Player            Player Bullets    Enemey            Enemy Bullets
   .db $3E,$06,$30,$08,  $00,$24,$23,$34,  $00,$20,$28,$14,  $00,$02,$38,$3C
 
 playersprites:
