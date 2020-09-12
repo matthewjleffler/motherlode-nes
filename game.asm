@@ -422,17 +422,20 @@ DoBulletMove:
   LDA pointerLo               ; Store the current bullet pointer in bulletFrame
   STA bulletFrame             ; since it's not used until later when we anim.
   ; TODO direction
-  LDY #$00                    ; Load sprite Y
-  LDA [pointerLo], Y
-  SEC
-  SBC #SPDBULLET              ; Move Y
-  STA [pointerLo], Y          ; Assign Y to sprite Y
+  LDY #0                      ; Clear Y offset
+  LDA #playerBulletYs         ; Load bullet Y subpixel
+  CLC
+  ADC bulletCount             ; Add specific bullet offset
+  STA pointerSub              ; Store pointer to bullet y subpixel
+  JSR StoreBulletSpeed
+  JSR SubPixelSubtract
   STA spriteLayoutOriginY     ; Save sprite Y for collision
   LDY #SPRITEX                ; Load sprite X
-  LDA [pointerLo], Y
+  LDA #playerBulletXs         ; Load bullet X subpixel
   CLC
-  ADC #SPDBULLET              ; Move X
-  STA [pointerLo], Y          ; Assign X to sprite X
+  ADC bulletCount             ; Add specific bullet offset
+  STA pointerSub              ; Store pointer to bullet x subpixel
+  JSR SubPixelAdd
   STA spriteLayoutOriginX     ; Save sprite X for collision
   ; TODO collision
   ; Test Bounds
@@ -609,32 +612,42 @@ UpdateSpriteLoop:
   RTS
 
 StorePlayerSpeed:
-  LDX #1
-  LDA #PSPEEDLO
+  LDA #PLAYER_SPEED_LO
   STA speed
-  LDA #PSPEEDHI
-  STA speed, x
+  LDA #PLAYER_SPEED_HI
+  STA speed+1
+  RTS
+
+StoreBulletSpeed:
+  LDA #BULLET_SPEED_LO
+  STA speed
+  LDA #BULLET_SPEED_HI
+  STA speed+1
   RTS
 
 SubPixelAdd:
-  LDX #1
+  STY pixelOffset             ; Store Y offset
+  LDY #0                      ; Set Y to 0
   LDA [pointerSub], Y         ; Load subpixel
   CLC
   ADC speed                   ; Add lo speed
   STA [pointerSub], Y         ; Store subpixel
+  LDY pixelOffset             ; Restore Y offset
   LDA [pointerLo], Y          ; Load pixel
-  ADC speed, X                ; Add hi speed with carry
+  ADC speed+1                 ; Add hi speed with carry
   STA [pointerLo], Y          ; Store result
   RTS
 
 SubPixelSubtract:
-  LDX #1
+  STY pixelOffset             ; Store Y offset
+  LDY #0
   LDA [pointerSub], Y         ; Load subpixel
   SEC
   SBC speed                   ; Subtract lo speed
   STA [pointerSub], Y         ; Store subpixel
+  LDY pixelOffset             ; Restore Y offset
   LDA [pointerLo], Y          ; Load pixel
-  SBC speed, X                ; Add hi speed with carry
+  SBC speed+1                 ; Subtract hi speed with carry
   STA [pointerLo], Y          ; Store pixel
   RTS
 
