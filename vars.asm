@@ -3,6 +3,15 @@
 
   .rsset $0000                ; put pointers in zero page
 
+arg0                    .rs 1 ; Reusable subroutine arg0
+arg1                    .rs 1 ; " "
+arg2                    .rs 1 ; " "
+arg3                    .rs 1 ; " "
+arg4                    .rs 1 ; " "
+arg5                    .rs 1 ; " "
+arg6                    .rs 1 ; " "
+arg7                    .rs 1 ; " "
+return                  .rs 1 ; Reusable return arg
 pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
 pointerSub              .rs 1 ; pointer to subpixel

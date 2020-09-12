@@ -154,18 +154,12 @@ NMI:
 ; Game Loop
 
 GameLoop:
-  JSR CountAnimation
+  INC animTick                ; Increment animation tick
   JSR ReadControllers
   JSR TestPlayerMove
   JSR TestShootBullet
   JSR UpdatePlayerSprites
   JSR UpdateBullets
-  RTS
-
-CountAnimation:
-  LDX animTick
-  INX
-  STX animTick
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -388,9 +382,7 @@ UpdateBullets:
   BEQ CountBulletAnim
   JMP UpdateBulletLoop
 CountBulletAnim:
-  LDX bulletAnim              ; Increment bullet anim counter
-  INX
-  STX bulletAnim
+  INC bulletAnim              ; Increment bullet anim counter
 UpdateBulletLoop:
   JSR GetBulletState          ; Temp now stores bullet state
   CMP #BULL_EXP               ; Are we exploding?
@@ -678,3 +670,83 @@ SubPixelSubtract:
 ;   LDA multRes1
 ;   LDY multRes2
 ;   RTS
+
+; Calculate the angle, in a 256-degree circle, between two points.
+; The trick is to use logarithmic division to get the y/x ratio and
+; integrate the power function into the atan table. Some branching is
+; avoided by using a table to adjust for the octants.
+; In otherwords nothing new or particularily clever but nevertheless
+; quite useful.
+;
+; by Johan Forslöf (doynax)
+; TODO scale down to 8? 16? 32 for sin/cos
+
+; Args:
+; arg0                        ; x1
+; arg1                        ; x2
+; arg2                        ; y1
+; arg3                        ; y2
+; arg4                        ; Local octant variable = $fb
+; return                      ; 256 degree angle
+
+atan2:
+  LDA #$FB
+  STA arg4                    ; Setup Octant
+  LDA arg0                    ; TODO carry flag?
+  SBC arg1
+  BCS *+4                     ; What is this?? TODO
+  EOR #$FF
+  TAX
+  ROL arg4
+
+  LDA arg2
+  SBC arg3
+  BCS *+4
+  EOR #$FF
+  TAY
+  ROL arg4
+
+  LDA log2_tab, X
+  SBC log2_tab, Y
+  BCC *+4
+  EOR #$FF
+  TAX
+
+  LDA arg4
+  ROL A                       ; TODO ROL arg4? before loading?
+  AND #%111
+  TAY
+
+  LDA atan_tab, X
+  EOR octant_adjust, Y
+  STA return
+  RTS
+
+; atan2		lda x1
+; 		sbc x2
+; 		bcs *+4
+; 		eor #$ff
+; 		tax
+; 		rol octant
+
+; 		lda y1
+; 		sbc y2
+; 		bcs *+4
+; 		eor #$ff
+; 		tay
+; 		rol octant
+
+; 		lda log2_tab,x
+; 		sbc log2_tab,y
+; 		bcc *+4
+; 		eor #$ff
+; 		tax
+
+; 		lda octant
+; 		rol
+; 		and #%111
+; 		tay
+
+; 		lda atan_tab,x
+; 		eor octant_adjust,y
+; 		rts
