@@ -18,8 +18,6 @@ pointerSub              .rs 1 ; pointer to subpixel
 pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 speed                   .rs 2 ; lo/hi speeds
 temp                    .rs 1 ; temp reusable byte
-pixelOffset             .rs 1 ; Storage for pixel offset when we need to change
-                              ; the Y register
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
 buttons1fresh           .rs 1 ; controller 1 buttons fresh
@@ -43,14 +41,15 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 10 - ??
                               ; 11 - ??
                               ; 88776655 44332211
-playerXs                .rs 1 ; Player subpixel in 1/256ths
-playerYs                .rs 1 ; Player subpixel in 1/256ths
-playerBulletXs          .rs 4 ; 4 subpixels
-playerBulletYs          .rs 4 ; 4 subpixels
-enemyBulletXs           .rs 8 ; 8 subpixels
-enemyBuleltYs           .rs 8 ; 8 subpixels
-enemyXs                 .rs 6 ; 6 subpixels
-enemyYs                 .rs 6 ; 6 subpixles
+playerXs                .rs 1 ; Player subpixel in 1/127ths, low is vel. sign
+playerYs                .rs 1 ; Player subpixel in 1/127ths, low is vel. sign
+playerBulletXs          .rs 4 ; 4 subpixels " "
+playerBulletYs          .rs 4 ; 4 subpixels " "
+enemyBulletXs           .rs 8 ; 8 subpixels " "
+enemyBuleltYs           .rs 8 ; 8 subpixels " "
+enemyXs                 .rs 6 ; 6 subpixels " "
+enemyYs                 .rs 6 ; 6 subpixles " "
+
 ; multFactor              .rs 1 ; Multiplication factor
 ; multRes1                .rs 1 ; Multiplication result 1
 ; multRes2                .rs 1 ; Multiplication result 2
@@ -86,9 +85,9 @@ BULLETEDGEW       = $FF - BULLETEDGE - $10
                               ; Right hand, bottom, includes bullet width
 
 ; Move Speed
-PLAYER_SPEED_LO   = 127       ; x/256 /frame
+PLAYER_SPEED_LO   = 127       ; x/127 /frame
 PLAYER_SPEED_HI   = 1         ; pixles/frame
-BULLET_SPEED_LO   = 127       ; x/256 /frame
+BULLET_SPEED_LO   = 127       ; x/127 /frame
 BULLET_SPEED_HI   = 3         ; pixles/frame
 
 ; Sprite lo addresses         ;                         n * s = t
@@ -99,8 +98,8 @@ ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
 ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
                               ;                 = 232         = 58 / 64
 
-PLAYERSIZE        = $18       ; player byte size
-ENEMYSIZE         = $10       ; enemy byte size
+PLAYERSIZE        = 24        ; player byte size
+ENEMYSIZE         = 16        ; enemy byte size
 
 ; Animation
 BULLETNOFL        = %00000001 ; Bullet attributes with flipping and color

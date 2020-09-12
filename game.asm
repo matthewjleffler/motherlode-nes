@@ -261,6 +261,25 @@ TestShootBullet:
   BNE ShootBullet
   RTS
 ShootBullet:
+  LDA #SPRITEHI               ; Setup pointers for player
+  STA pointerHi
+  LDA #PLAYER
+  STA pointerLo
+  LDY #0                      ; Load player Y
+  LDA [pointerLo], Y
+  STA arg2                    ; Store player Y in arg2 (y1)
+  LDY #SPRITEX                ; Load player X
+  LDA [pointerLo], Y
+  STA arg0                    ; Store player X in arg0 (x1)
+  LDA #ENEMY0                 ; Move pointers for enemy
+  LDY #0                      ; Load enemy Y
+  LDA [pointerLo], Y
+  STA arg3                    ; Store enemy Y in arg3 (y2)
+  LDY #SPRITEX
+  LDA [pointerLo], Y          ; Load enemy X
+  STA arg1                    ; Store enemy X in arg1 (x2)
+  JSR atan2
+  ; TODO lookup angle for velocities
   LDX #BULLETCOUNT
   LDY #$00                    ; Flag for whether or not we shot, and pointer
   STY bulletCount             ; Count pointers for current bullet
@@ -275,24 +294,15 @@ FindFreeBullet:
   STA temp
   JSR SetBulletState
   ; Set bullet position
-  LDA #SPRITEHI               ; Setup pointers for player
-  STA pointerHi
-  LDA #PLAYER
-  STA pointerLo
-  LDA [pointerLo], Y          ; Store player Y
-  STA spriteLayoutOriginY
-  LDY #SPRITEX
-  LDA [pointerLo], Y          ; Store player X
-  STA spriteLayoutOriginX
   LDA #PBULLET0               ; Point at selected bullet
   CLC
   ADC bulletCount
   STA pointerLo
   LDY #$00
-  LDA spriteLayoutOriginY
+  LDA arg2                    ; Player Y was stored in arg2 (y1)
   STA [pointerLo], Y          ; Apply player Y
   LDY #SPRITEX
-  LDA spriteLayoutOriginX
+  LDA arg0                    ; Player X was stored in arg0 (x1)
   STA [pointerLo], Y          ; Apply player X
   LDY #$01                    ; Mark that we've already shot
 NextBullet:
@@ -618,26 +628,26 @@ StoreBulletSpeed:
   RTS
 
 SubPixelAdd:
-  STY pixelOffset             ; Store Y offset
+  STY arg0                    ; Store Y offset
   LDY #0                      ; Set Y to 0
   LDA [pointerSub], Y         ; Load subpixel
   CLC
   ADC speed                   ; Add lo speed
   STA [pointerSub], Y         ; Store subpixel
-  LDY pixelOffset             ; Restore Y offset
+  LDY arg0                    ; Restore Y offset
   LDA [pointerLo], Y          ; Load pixel
   ADC speed+1                 ; Add hi speed with carry
   STA [pointerLo], Y          ; Store result
   RTS
 
 SubPixelSubtract:
-  STY pixelOffset             ; Store Y offset
+  STY arg0                    ; Store Y offset
   LDY #0
   LDA [pointerSub], Y         ; Load subpixel
   SEC
   SBC speed                   ; Subtract lo speed
   STA [pointerSub], Y         ; Store subpixel
-  LDY pixelOffset             ; Restore Y offset
+  LDY arg0                    ; Restore Y offset
   LDA [pointerLo], Y          ; Load pixel
   SBC speed+1                 ; Subtract hi speed with carry
   STA [pointerLo], Y          ; Store pixel
