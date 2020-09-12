@@ -199,36 +199,50 @@ TestPlayerMove:
   STA pointerHi
   LDA #PLAYER
   STA pointerLo
-  LDY #SPRITEX                ; First check x, Left/right
-  JSR TestMoveLeft
-  JSR TestMoveRight
-  LDY #0                      ; Then check y, Up/Down
+  ; Set up positions for atan2 and movement count
+  LDA #10                      ; Set up atan2 coords, set all to 1
+  STA arg0                    ; x1
+  STA arg1                    ; x2
+  STA arg2                    ; y1
+  STA arg3                    ; y2
+  ; Check inputs
   JSR TestMoveUp
   JSR TestMoveDown
-  RTS
-
-TestMoveLeft:
-  LDA buttons1
-  AND #BUTTONL
-  BNE MoveLeft
-  RTS
-MoveLeft:
-  LDA #playerXs
+  JSR TestMoveLeft
+  JSR TestMoveRight
+  JSR CoordsEqual
+  CMP #0                      ; Nothing pressed
+  BEQ NoPlayerMove
+  JMP DoPlayerMove
+NoPlayerMove:
+  RTS                         ; Done, don't apply movement
+DoPlayerMove:
+  ; Positions are set up for Atan2
+  JSR Atan2
+  LSR A                  ; Only need 8 angles for player
+  LSR A                  ; LSR 5 times to / 32
+  LSR A
+  LSR A
+  LSR A
+  TAX                  ; Now we have the offset for the player velocities
+  ; Set up velocity args for Y
+  LDA playerMoveY, X
+  STA arg0                    ; Velocity Lo
+  LDA playerMoveY+8, X
+  STA arg1                    ; Velocity Hi
+  LDY #0                      ; Set Y register for sprite Y
+  LDA #playerSub              ; Set pointerSub for player subpixel Y
   STA pointerSub
-  JSR StorePlayerSpeed
-  JSR SubPixelSubtract
-  RTS
-
-TestMoveRight:
-  LDA buttons1
-  AND #BUTTONR
-  BNE MoveRight
-  RTS
-MoveRight:
-  LDA #playerXs
+  JSR SubPixelMove
+  ; Set up velocity args for X
+  LDA playerMoveX, X
+  STA arg0                    ; Velocity Lo
+  LDA playerMoveX+8, X
+  STA arg1                    ; Velocity Hi
+  LDY #SPRITEX                ; Set Y register for sprite X
+  LDA #playerSub+1            ; Set pointerSub for player subpixel X
   STA pointerSub
-  JSR StorePlayerSpeed
-  JSR SubPixelAdd
+  JSR SubPixelMove
   RTS
 
 TestMoveUp:
@@ -237,10 +251,8 @@ TestMoveUp:
   BNE MoveUp
   RTS
 MoveUp:
-  LDA #playerYs
-  STA pointerSub
-  JSR StorePlayerSpeed
-  JSR SubPixelSubtract
+  LDA #0
+  STA arg3                    ; y2 is 0
   RTS
 
 TestMoveDown:
@@ -249,10 +261,28 @@ TestMoveDown:
   BNE MoveDown
   RTS
 MoveDown:
-  LDA #playerYs
-  STA pointerSub
-  JSR StorePlayerSpeed
-  JSR SubPixelAdd
+  LDA #20
+  STA arg3                    ; y2 is 2
+  RTS
+
+TestMoveLeft:
+  LDA buttons1
+  AND #BUTTONL
+  BNE MoveLeft
+  RTS
+MoveLeft:
+  LDA #0
+  STA arg1                    ; x2 is 0
+  RTS
+
+TestMoveRight:
+  LDA buttons1
+  AND #BUTTONR
+  BNE MoveRight
+  RTS
+MoveRight:
+  LDA #20
+  STA arg1                    ; x2 is 2
   RTS
 
 TestShootBullet:
@@ -278,10 +308,10 @@ ShootBullet:
   LDY #SPRITEX
   LDA [pointerLo], Y          ; Load enemy X
   STA arg1                    ; Store enemy X in arg1 (x2)
-  JSR atan2
+  ; JSR Atan2
   ; TODO lookup angle for velocities
-  LDX #BULLETCOUNT
-  LDY #$00                    ; Flag for whether or not we shot, and pointer
+  LDX #0                      ; Bullet count
+  LDY #0                      ; Flag for whether or not we shot, and pointer
   STY bulletCount             ; Count pointers for current bullet
 FindFreeBullet:
   JSR GetBulletState
@@ -310,8 +340,8 @@ NextBullet:
   CLC
   ADC #$10                    ; Move to next bullet pointer
   STA bulletCount
-  DEX                         ; Decrement counter
-  CPX #0
+  INX                         ; Increment counter
+  CPX #BULLETCOUNT
   BNE FindFreeBullet          ; If not 0, check next bullet, or cycle the state
   RTS
 
@@ -424,21 +454,21 @@ DoBulletMove:
   LDA pointerLo               ; Store the current bullet pointer in bulletFrame
   STA bulletFrame             ; since it's not used until later when we anim.
   ; TODO direction
-  LDY #0                      ; Clear Y offset
-  LDA #playerBulletYs         ; Load bullet Y subpixel
-  CLC
-  ADC bulletCount             ; Add specific bullet offset
-  STA pointerSub              ; Store pointer to bullet y subpixel
-  JSR StoreBulletSpeed
-  JSR SubPixelSubtract
-  STA spriteLayoutOriginY     ; Save sprite Y for collision
-  LDY #SPRITEX                ; Load sprite X
-  LDA #playerBulletXs         ; Load bullet X subpixel
-  CLC
-  ADC bulletCount             ; Add specific bullet offset
-  STA pointerSub              ; Store pointer to bullet x subpixel
-  JSR SubPixelAdd
-  STA spriteLayoutOriginX     ; Save sprite X for collision
+  ; LDY #0                      ; Clear Y offset
+  ; LDA #playerBulletYs         ; Load bullet Y subpixel
+  ; CLC
+  ; ADC bulletCount             ; Add specific bullet offset
+  ; STA pointerSub              ; Store pointer to bullet y subpixel
+  ; JSR StoreBulletSpeed
+  ; JSR SubPixelSubtract
+  ; STA spriteLayoutOriginY     ; Save sprite Y for collision
+  ; LDY #SPRITEX                ; Load sprite X
+  ; LDA #playerBulletXs         ; Load bullet X subpixel
+  ; CLC
+  ; ADC bulletCount             ; Add specific bullet offset
+  ; STA pointerSub              ; Store pointer to bullet x subpixel
+  ; JSR SubPixelAdd
+  ; STA spriteLayoutOriginX     ; Save sprite X for collision
   ; TODO collision
   ; Test Bounds
   LDA spriteLayoutOriginX     ; Are we within the bullet edge X?
@@ -613,150 +643,108 @@ UpdateSpriteLoop:
   BNE UpdateSpriteLoop
   RTS
 
-StorePlayerSpeed:
-  LDA #PLAYER_SPEED_LO
-  STA speed
-  LDA #PLAYER_SPEED_HI
-  STA speed+1
-  RTS
+; StorePlayerSpeed:
+;   ; LDA #PLAYER_SPEED_LO
+;   ; STA speed
+;   ; LDA #PLAYER_SPEED_HI
+;   ; STA speed+1
+;   RTS
 
 StoreBulletSpeed:
-  LDA #BULLET_SPEED_LO
-  STA speed
-  LDA #BULLET_SPEED_HI
-  STA speed+1
+  ; LDA #BULLET_SPEED_LO
+  ; STA speed
+  ; LDA #BULLET_SPEED_HI
+  ; STA speed+1
   RTS
 
-SubPixelAdd:
-  STY arg0                    ; Store Y offset
+; Move subpixel based on velocity
+; pointerSub should be set up to subpixel
+; arg0 - lo velocity
+; arg1 - hi velocity. hi bit is sign
+; Local:
+; arg2 - Y register for pointerLo
+; arg3 - Sign
+SubPixelMove:
+  STY arg2                    ; Store Y register for pointerLo
+  LDA arg1                    ; Load hi velocity to check sign
+  AND #NEG_SIGN
+  CLC
+  ROL A                       ; Move it to low bit
+  ROL A
+  STA arg3                    ; Store sign for later
+  LDA arg1                    ; Clear sign off high velocity
+  AND #MOV_MASK
+  STA arg1
   LDY #0                      ; Set Y to 0
+  LDA arg3                    ; Now check sign
+  CMP #0
+  BEQ SubPixelAdd             ; Positive Movement
+  JMP SubPixelSubtract        ; Negative Movement
+
+SubPixelAdd:
   LDA [pointerSub], Y         ; Load subpixel
   CLC
-  ADC speed                   ; Add lo speed
+  ADC arg0                    ; Add lo velocity
   STA [pointerSub], Y         ; Store subpixel
-  LDY arg0                    ; Restore Y offset
+  LDY arg2                    ; Restore Y offset
   LDA [pointerLo], Y          ; Load pixel
-  ADC speed+1                 ; Add hi speed with carry
+  ADC arg1                    ; Add hi velocity with carry
   STA [pointerLo], Y          ; Store result
   RTS
 
 SubPixelSubtract:
-  STY arg0                    ; Store Y offset
-  LDY #0
   LDA [pointerSub], Y         ; Load subpixel
   SEC
-  SBC speed                   ; Subtract lo speed
+  SBC arg0                    ; Subtract lo speed
   STA [pointerSub], Y         ; Store subpixel
-  LDY arg0                    ; Restore Y offset
+  LDY arg2                    ; Restore Y offset
   LDA [pointerLo], Y          ; Load pixel
-  SBC speed+1                 ; Subtract hi speed with carry
+  SBC arg1                    ; Subtract hi velocity with carry
   STA [pointerLo], Y          ; Store pixel
   RTS
 
-; 8-bit multiply
-; by Bregalad
-; Enter with A,Y, numbers to multiply
-; Output with YA = 16-bit result (X is unchanged)
-; Multiply:
-;   STY multFactor              ; Store input factor
-;   LDY #$00
-;   STY multRes1                ; Clear result
-;   STY multRes2
-;   LDY #$08                    ; Number of shifts needed
-; MultNeg:
-;   LSR A                       ; Shift right input number
-;   BCC MultPos                 ; Check if bit is set
-;   PHA
-;   LDA multRes2
-;   CLC
-;   ADC multFactor
-;   STA multRes2                ; If so add number to result
-;   PLA
-; MultPos:
-;   LSR multRes2                ; Shift result right
-;   ROR multRes1
-;   DEY
-;   BNE MultNeg
-;   LDA multRes1
-;   LDY multRes2
-;   RTS
+; Test whether the coordinates for Atan2 are equal, uses the same
+; args as Atan2, but does not modify them.
+; A will be 0 if true, 1 if false
+CoordsEqual:
+  LDA arg0                    ; x1
+  CMP arg1                    ; x2
+  BNE CoordsNotEqual
+  LDA arg2                    ; y1
+  CMP arg3                    ; y2
+  BNE CoordsNotEqual
+  LDA #0                      ; Both are equal
+  RTS
+CoordsNotEqual:
+  LDA #1                      ; Not equal
+  RTS
 
-; Calculate the angle, in a 256-degree circle, between two points.
-; The trick is to use logarithmic division to get the y/x ratio and
-; integrate the power function into the atan table. Some branching is
-; avoided by using a table to adjust for the octants.
-; In otherwords nothing new or particularily clever but nevertheless
-; quite useful.
-;
-; by Johan Forslöf (doynax)
-; TODO scale down to 8? 16? 32 for sin/cos
-
-; Args:
-; arg0                        ; x1
-; arg1                        ; x2
-; arg2                        ; y1
-; arg3                        ; y2
-; arg4                        ; Local octant variable = $fb
-; return                      ; 256 degree angle
-
-atan2:
-  LDA #$FB
-  STA arg4                    ; Setup Octant
-  LDA arg0                    ; TODO carry flag?
+Atan2:
+  LDA arg0
   SBC arg1
-  BCS *+4                     ; What is this?? TODO
-  EOR #$FF
+  BCS *+4
+  EOR #$ff
   TAX
   ROL arg4
 
   LDA arg2
   SBC arg3
   BCS *+4
-  EOR #$FF
+  EOR #$ff
   TAY
   ROL arg4
 
-  LDA log2_tab, X
-  SBC log2_tab, Y
+  LDA log2_tab,x
+  SBC log2_tab,y
   BCC *+4
-  EOR #$FF
+  EOR #$ff
   TAX
 
   LDA arg4
-  ROL A                       ; TODO ROL arg4? before loading?
+  ROL a
   AND #%111
   TAY
 
-  LDA atan_tab, X
-  EOR octant_adjust, Y
-  STA return
+  LDA atan_tab,x
+  EOR octant_adjust,y
   RTS
-
-; atan2		lda x1
-; 		sbc x2
-; 		bcs *+4
-; 		eor #$ff
-; 		tax
-; 		rol octant
-
-; 		lda y1
-; 		sbc y2
-; 		bcs *+4
-; 		eor #$ff
-; 		tay
-; 		rol octant
-
-; 		lda log2_tab,x
-; 		sbc log2_tab,y
-; 		bcc *+4
-; 		eor #$ff
-; 		tax
-
-; 		lda octant
-; 		rol
-; 		and #%111
-; 		tay
-
-; 		lda atan_tab,x
-; 		eor octant_adjust,y
-; 		rts

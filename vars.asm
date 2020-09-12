@@ -16,7 +16,7 @@ pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
 pointerSub              .rs 1 ; pointer to subpixel
 pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
-speed                   .rs 2 ; lo/hi speeds
+; speed                   .rs 2 ; lo/hi speeds
 temp                    .rs 1 ; temp reusable byte
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
@@ -41,8 +41,7 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 10 - ??
                               ; 11 - ??
                               ; 88776655 44332211
-playerXs                .rs 1 ; Player subpixel in 1/127ths, low is vel. sign
-playerYs                .rs 1 ; Player subpixel in 1/127ths, low is vel. sign
+playerSub               .rs 2 ; Player subpixel, y+0, x+1
 playerBulletXs          .rs 4 ; 4 subpixels " "
 playerBulletYs          .rs 4 ; 4 subpixels " "
 enemyBulletXs           .rs 8 ; 8 subpixels " "
@@ -85,10 +84,15 @@ BULLETEDGEW       = $FF - BULLETEDGE - $10
                               ; Right hand, bottom, includes bullet width
 
 ; Move Speed
-PLAYER_SPEED_LO   = 127       ; x/127 /frame
+NEG_SIGN          = %10000000 ; Indicates negative movement
+MOV_MASK          = %01111111 ; Non-sign movement
 PLAYER_SPEED_HI   = 1         ; pixles/frame
-BULLET_SPEED_LO   = 127       ; x/127 /frame
 BULLET_SPEED_HI   = 3         ; pixles/frame
+PLAYER_SPEED_LO   = 127       ; subpixels in x/256
+BULLET_SPEED_LO   = 127       ; subpixels in x/256
+
+; Player move table
+playerLookup:
 
 ; Sprite lo addresses         ;                         n * s = t
 EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8
@@ -115,3 +119,4 @@ BULLFRAME3        = $09
 BULL_OFF          = $00
 BULL_MOV          = $01
 BULL_EXP          = $02
+
