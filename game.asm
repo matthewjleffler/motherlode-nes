@@ -180,14 +180,14 @@ ReadControllerLoop:
 ReadControllerButton:
   LDA [pointerLo], Y
   LSR A                       ; bit0 -> carry
-  ROL temp                    ; bit0 <- carry
+  ROL arg0                    ; bit0 <- carry
   DEX                         ; see if this loop is done
   BNE ReadControllerButton    ; continue loop
-  LDA temp                    ; Load this frame's state to calculate freshness
+  LDA arg0                    ; Load this frame's state to calculate freshness
   EOR buttons1, y             ; EOR to get changes
-  AND temp                    ; AND to only keep newly on bits
+  AND arg0                    ; AND to only keep newly on bits
   STA buttons1fresh, y        ; Store the freshness var
-  LDA temp                    ; Now store actual held state back
+  LDA arg0                    ; Now store actual held state back
   STA buttons1, y
   INY
   CPY #$01                    ; Are we on controller 2?
