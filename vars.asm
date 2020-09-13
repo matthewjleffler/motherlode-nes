@@ -16,7 +16,6 @@ pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
 pointerSub              .rs 1 ; pointer to subpixel
 pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
-; speed                   .rs 2 ; lo/hi speeds
 temp                    .rs 1 ; temp reusable byte
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
@@ -50,7 +49,8 @@ playerBulletVel         .rs 4 ; 4 (indexes)
 
 ; Rendering
 SPRITEHI          = $02       ; High byte of sprite address is always the same
-TILEW             = $08
+TILE_HALF         = 4
+TILE_WIDTH        = 8
 SPRITETIL         = $01
 SPRITEATT         = $02
 SPRITEX           = $03
@@ -74,6 +74,7 @@ BULLETCOUNT       = 4         ; Number of bullets to render
 BULLETEDGE        = 6         ; 1 pixel wider than movement speed
 BULLETEDGEW       = $FF - BULLETEDGE - $10
                               ; Right hand, bottom, includes bullet width
+PLAYER_MOVE_DIST  = 80        ; How far from the center the player can move
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement

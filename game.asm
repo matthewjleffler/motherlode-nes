@@ -261,10 +261,16 @@ ShootBullet:
   STA pointerLo
   LDY #0
   LDA [pointerLo], Y          ; Load player Y
-  STA arg2                    ; Store player Y in arg2 (y1)
+  STA spriteLayoutOriginY     ; Store player Y
+  CLC
+  ADC #TILE_WIDTH             ; Center of bullet
+  STA arg2                    ; Store center in arg1 for atan2
   LDY #SPRITEX                ; Load player X
   LDA [pointerLo], Y
-  STA arg0                    ; Store player X in arg0 (x1)
+  STA spriteLayoutOriginX     ; Store player X
+  CLC
+  ADC #TILE_WIDTH             ; Center of bullet
+  STA arg0                    ; Store center in arg0 for atan2
   LDA #ENEMY0                 ; Setup pointers for enemy
   STA pointerLo
   LDY #0
@@ -273,7 +279,7 @@ ShootBullet:
   LDY #SPRITEX
   LDA [pointerLo], Y          ; Load enemy X
   CLC
-  ADC #TILEW                  ; Add half tile for enemy center
+  ADC #TILE_WIDTH             ; Add half tile for enemy center
   STA arg1                    ; Store enemy X in arg1 (x2)
   ; TODO equals
   JSR Atan2                   ; Get degrees between player and enemy
@@ -301,10 +307,10 @@ FindFreeBullet:
   ADC bulletCount
   STA pointerLo
   LDY #$00
-  LDA arg2                    ; Player Y was stored in arg2 (y1)
+  LDA spriteLayoutOriginY     ; Player Y stored earlier
   STA [pointerLo], Y          ; Apply player Y
   LDY #SPRITEX
-  LDA arg0                    ; Player X was stored in arg0 (x1)
+  LDA spriteLayoutOriginX     ; Player X stored earlier
   STA [pointerLo], Y          ; Apply player X
   ; Set bullet velocity
   LDA arg1                    ; Previously saved velocity
@@ -623,13 +629,13 @@ UpdateSpriteLoop:
   LDY #SPRITEX                ; Set sprite X's
   STA [pointerLo], Y
   CLC
-  ADC #TILEW
+  ADC #TILE_WIDTH
   LDY #SPRITEX+4              ; Second sprite's X
   STA [pointerLo], Y
   JSR MovePointerOneRow       ; Increment Y for next loop
   LDA spriteLayoutOriginY     ; Increment row Y
   CLC
-  ADC #TILEW
+  ADC #TILE_WIDTH
   STA spriteLayoutOriginY
   DEX
   BNE UpdateSpriteLoop
@@ -697,6 +703,13 @@ CoordsNotEqual:
   LDA #1                      ; Not equal
   RTS
 
+; from https://codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle
+; arg0 - x1
+; arg1 - x2
+; arg2 - y1
+; arg3 - y2
+; uses arg4 for octant
+; A will be the 256 degree angle
 Atan2:
   LDA #0
   STA arg4
@@ -727,3 +740,45 @@ Atan2:
   LDA atan_tab,x
   EOR octant_adjust,y
   RTS
+
+; Calclulate distance between two points
+; arg0 - x1
+; arg1 - x2
+; arg2 - y1
+; arg3 - y2
+; uses arg4 sum
+ManhattanDistance:
+;findX
+  LDA arg0                    ; Load x1
+  CMP arg1                    ; Compare x2
+  BCC .x1less
+;x2less
+  SEC                         ; x1 still in A
+  SBC arg1                    ; subtract x2
+  STA arg4                    ; store result
+  JMP .findY
+.x1less:
+  LDA arg1                    ; Load x2
+  SEC
+  SBC arg0                    ; subtract x1
+  STA arg4
+.findY:
+  LDA arg2                    ; Load y1
+  CMP arg3                    ; Compare y2
+  BCC .y1less
+;y2less
+  SEC                         ; y1 still in A
+  SBC arg3                    ; subtract y2
+  JMP .sum
+.y1less:
+  LDA arg3                    ; Load y2
+  SEC
+  SBC arg2                    ; subtract y1
+.sum:
+  CLC                         ; y is in A
+  ADC arg4                    ; add with x
+  BVC .finish                 ; if we didn't overflow, we're done
+  LDA #$FF                    ; Just set result to full if we overflowed
+.finish:
+  RTS
+
