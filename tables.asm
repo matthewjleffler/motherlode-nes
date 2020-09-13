@@ -113,7 +113,6 @@ playerInput:
   .db %00000001, %00000011, %00000010, %00000110
   .db %00000100, %00001100, %00001000, %00001001
 
-; Player velocity is based on 1.5 pixels per second
 playerMoveX:
   .db $80,$0F,$00,$0F,$80,$0F,$00,$0F
   .db $01,$01,$00,$81,$81,$81,$00,$01

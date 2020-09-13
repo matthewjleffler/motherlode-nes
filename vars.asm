@@ -42,16 +42,8 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 11 - ??
                               ; 88776655 44332211
 playerSub               .rs 2 ; Player subpixel, y+0, x+1
-playerBulletXs          .rs 4 ; 4 subpixels " "
-playerBulletYs          .rs 4 ; 4 subpixels " "
-enemyBulletXs           .rs 8 ; 8 subpixels " "
-enemyBuleltYs           .rs 8 ; 8 subpixels " "
-enemyXs                 .rs 6 ; 6 subpixels " "
-enemyYs                 .rs 6 ; 6 subpixles " "
-
-; multFactor              .rs 1 ; Multiplication factor
-; multRes1                .rs 1 ; Multiplication result 1
-; multRes2                .rs 1 ; Multiplication result 2
+playerBulletSub         .rs 8 ; 4 * 2
+playerBulletVel         .rs 8 ; 4 * 2
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
@@ -75,25 +67,17 @@ BUTTOND           = %00000100
 BUTTONL           = %00000010
 BUTTONR           = %00000001
 
-; Player input
-MOVBUTTONR        = %00000001
-MOVBUTTOND        = %00000010
-MOVBUTTONL        = %00000100
-MOVBUTTONU        = %00001000
-
 ; Gameplay
 STATEMASK         = %00000011 ; Mask for lower two bits
 HICLEAR           = %00111111 ; Mask to clear high bits
-BULLETCOUNT       = $04       ; Number of bullets to render
-BULLETEDGE        = $06       ; 1 pixel wider than movement speed
+BULLETCOUNT       = 4         ; Number of bullets to render
+BULLETEDGE        = 6         ; 1 pixel wider than movement speed
 BULLETEDGEW       = $FF - BULLETEDGE - $10
                               ; Right hand, bottom, includes bullet width
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
 MOV_MASK          = %01111111 ; Non-sign movement
-PLAYER_SPEED_LO   = 127       ; subpixels in x/256
-BULLET_SPEED_LO   = 127       ; subpixels in x/256
 
 ; Sprite lo addresses         ;                         n * s = t
 EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8
@@ -120,4 +104,3 @@ BULLFRAME3        = $09
 BULL_OFF          = $00
 BULL_MOV          = $01
 BULL_EXP          = $02
-

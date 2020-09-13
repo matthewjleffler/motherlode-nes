@@ -272,8 +272,18 @@ ShootBullet:
   LDY #SPRITEX
   LDA [pointerLo], Y          ; Load enemy X
   STA arg1                    ; Store enemy X in arg1 (x2)
-  ; JSR Atan2
-  ; TODO lookup angle for velocities
+  ; TODO equals
+  JSR Atan2                   ; Get degrees between player and enemy
+  LSR A                       ; LSR 4 times to get 16 degrees
+  LSR A
+  LSR A
+  LSR A
+  TAX                         ; Now we have the index for the velocity
+  LDA playerBulletX, X        ; Low byte of velocity
+  STA arg1                    ; Don't need enemy pos any more
+  LDA playerBulletX+16, X     ; High byte of velocity (16 rotations)
+  STA arg3                    ; Don't need enemy pos any more
+  ; Now loop to find a free bullet to shoot
   LDX #0                      ; Bullet count
   LDY #0                      ; Flag for whether or not we shot, and pointer
   STY bulletCount             ; Count pointers for current bullet
@@ -281,7 +291,7 @@ FindFreeBullet:
   JSR GetBulletState
   CMP #BULL_OFF               ; If the bullet is off? Turn it on
   BNE NextBullet
-; Found a free bullet
+  ; Found a free bullet
   CPY #$00
   BNE NextBullet              ; Have we already shot a bullet?
   LDA #BULL_MOV               ; Set the current bullet state to moving
@@ -298,6 +308,15 @@ FindFreeBullet:
   LDY #SPRITEX
   LDA arg0                    ; Player X was stored in arg0 (x1)
   STA [pointerLo], Y          ; Apply player X
+  ; Set bullet velocity
+  LDA arg1
+  STA playerBulletVel, X
+  LDA arg3
+  STA playerBulletVel+1, X
+  ; Clear bullet subpixel
+  LDA #0                      ; TODO player subpixel?
+  STA playerBulletSub, X
+  STA playerBulletSub+1, X
   LDY #$01                    ; Mark that we've already shot
 NextBullet:
   LDA bulletCount
@@ -607,13 +626,6 @@ UpdateSpriteLoop:
   BNE UpdateSpriteLoop
   RTS
 
-StoreBulletSpeed:
-  ; LDA #BULLET_SPEED_LO
-  ; STA speed
-  ; LDA #BULLET_SPEED_HI
-  ; STA speed+1
-  RTS
-
 ; Move subpixel based on velocity
 ; pointerSub should be set up to subpixel
 ; arg0 - lo velocity
@@ -686,7 +698,6 @@ Atan2:
   EOR #$ff
   TAX
   ROL arg4
-
   LDA arg2
   SEC
   SBC arg3
@@ -694,19 +705,16 @@ Atan2:
   EOR #$ff
   TAY
   ROL arg4
-
   LDA log2_tab,x
   SEC
   SBC log2_tab,y
   BCC *+4
   EOR #$ff
   TAX
-
   LDA arg4
   ROL a
   AND #%111
   TAY
-
   LDA atan_tab,x
   EOR octant_adjust,y
   RTS
