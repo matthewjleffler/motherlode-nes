@@ -75,6 +75,8 @@ BULLETEDGE        = 6         ; 1 pixel wider than movement speed
 BULLETEDGEW       = $FF - BULLETEDGE - $10
                               ; Right hand, bottom, includes bullet width
 PLAYER_MOVE_DIST  = 80        ; How far from the center the player can move
+PLAYER_CENTER_X   = 127 - TILE_WIDTH ; Center of player screen x
+PLAYER_CENTER_Y   = 127 - TILE_WIDTH * 2 ; Center of player screen y
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement

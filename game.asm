@@ -229,6 +229,11 @@ TestPlayerMove:
   INX
   JMP .loop
 .apply:
+  JSR StoreSpritePosition     ; Store last position in case we need to move back
+  LDA spriteLayoutOriginX
+  STA arg6                    ; x
+  LDA spriteLayoutOriginY
+  STA arg7                    ; y
   ; Set up velocity args for Y
   LDA playerMoveY, X
   STA arg0                    ; Velocity Lo
@@ -247,6 +252,28 @@ TestPlayerMove:
   LDA #playerSub+1            ; Set pointerSub for player subpixel X
   STA pointerSub
   JSR SubPixelMove
+  ; Test bounds
+  JSR StoreSpritePosition     ; Get new position
+  LDA #PLAYER_CENTER_X        ; x1, y1 is screen center
+  STA arg0
+  LDA #PLAYER_CENTER_Y
+  STA arg2
+  LDA spriteLayoutOriginX     ; x2, y2 is player pos
+  STA arg1
+  LDA spriteLayoutOriginY
+  STA arg3
+  JSR ManhattanDistance       ; Get distance
+  CMP #PLAYER_MOVE_DIST
+  BCC .collision              ; Didn't leave range, jump to collision
+;leftBounds
+  LDY #0
+  LDA arg7
+  STA [pointerLo], Y          ; Set Y back to where we started
+  LDY #SPRITEX
+  LDA arg6
+  STA [pointerLo], Y          ; Set X back to where we started
+.collision:
+  ; TODO test collision
   RTS
 
 TestShootBullet:
@@ -592,6 +619,22 @@ ApplyBulletSettings:
   BNE .loop
   JMP IncrementBulletLoop
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Utils
+
+; Set up pointerHi and lo for the sprite to cache,
+; puts its current pixel values in:
+; spriteLayoutOriginY
+; spriteLayoutOriginX
+StoreSpritePosition:
+  LDY #0                      ; pixel Y
+  LDA [pointerLo], Y
+  STA spriteLayoutOriginY
+  LDY #SPRITEX                ; pixel X
+  LDA [pointerLo], y
+  STA spriteLayoutOriginX
+  RTS
+
 ; Sets all sprites to hidden for a given layout
 ; Expects pointerLo to be set for the top left sprite address
 ; Expects X to be set to sprite height in tiles
@@ -661,10 +704,9 @@ SubPixelMove:
   LDY #0                      ; Set Y to 0
   LDA arg3                    ; Now check sign
   CMP #0
-  BEQ SubPixelAdd             ; Positive Movement
-  JMP SubPixelSubtract        ; Negative Movement
-
-SubPixelAdd:
+  BEQ .add                    ; Positive Movement
+  JMP .sub                    ; Negative Movement
+.add:
   LDA [pointerSub], Y         ; Load subpixel
   CLC
   ADC arg0                    ; Add lo velocity
@@ -674,8 +716,7 @@ SubPixelAdd:
   ADC arg1                    ; Add hi velocity with carry
   STA [pointerLo], Y          ; Store result
   RTS
-
-SubPixelSubtract:
+.sub:
   LDA [pointerSub], Y         ; Load subpixel
   SEC
   SBC arg0                    ; Subtract lo speed
