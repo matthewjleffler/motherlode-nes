@@ -43,7 +43,7 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 88776655 44332211
 playerSub               .rs 2 ; Player subpixel, y+0, x+1
 playerBulletSub         .rs 8 ; 4 * 2
-playerBulletVel         .rs 8 ; 4 * 2
+playerBulletVel         .rs 4 ; 4 (indexes)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants

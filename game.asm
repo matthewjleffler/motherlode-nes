@@ -259,30 +259,28 @@ ShootBullet:
   STA pointerHi
   LDA #PLAYER
   STA pointerLo
-  LDY #0                      ; Load player Y
-  LDA [pointerLo], Y
+  LDY #0
+  LDA [pointerLo], Y          ; Load player Y
   STA arg2                    ; Store player Y in arg2 (y1)
   LDY #SPRITEX                ; Load player X
   LDA [pointerLo], Y
   STA arg0                    ; Store player X in arg0 (x1)
-  LDA #ENEMY0                 ; Move pointers for enemy
-  LDY #0                      ; Load enemy Y
-  LDA [pointerLo], Y
+  LDA #ENEMY0                 ; Setup pointers for enemy
+  STA pointerLo
+  LDY #0
+  LDA [pointerLo], Y          ; Load enemy Y
   STA arg3                    ; Store enemy Y in arg3 (y2)
   LDY #SPRITEX
   LDA [pointerLo], Y          ; Load enemy X
+  CLC
+  ADC #TILEW                  ; Add half tile for enemy center
   STA arg1                    ; Store enemy X in arg1 (x2)
   ; TODO equals
   JSR Atan2                   ; Get degrees between player and enemy
-  LSR A                       ; LSR 4 times to get 16 degrees
+  LSR A                       ; LSR 4 times to get 32 degrees
   LSR A
   LSR A
-  LSR A
-  TAX                         ; Now we have the index for the velocity
-  LDA playerBulletX, X        ; Low byte of velocity
-  STA arg1                    ; Don't need enemy pos any more
-  LDA playerBulletX+16, X     ; High byte of velocity (16 rotations)
-  STA arg3                    ; Don't need enemy pos any more
+  STA arg1                    ; Store index in arg1, don't need enemy pos
   ; Now loop to find a free bullet to shoot
   LDX #0                      ; Bullet count
   LDY #0                      ; Flag for whether or not we shot, and pointer
@@ -309,10 +307,8 @@ FindFreeBullet:
   LDA arg0                    ; Player X was stored in arg0 (x1)
   STA [pointerLo], Y          ; Apply player X
   ; Set bullet velocity
-  LDA arg1
+  LDA arg1                    ; Previously saved velocity
   STA playerBulletVel, X
-  LDA arg3
-  STA playerBulletVel+1, X
   ; Clear bullet subpixel
   LDA #0                      ; TODO player subpixel?
   STA playerBulletSub, X
@@ -436,22 +432,35 @@ DoBulletExplode:
 DoBulletMove:
   LDA pointerLo               ; Store the current bullet pointer in bulletFrame
   STA bulletFrame             ; since it's not used until later when we anim.
-  ; TODO direction
-  ; LDY #0                      ; Clear Y offset
-  ; LDA #playerBulletYs         ; Load bullet Y subpixel
-  ; CLC
-  ; ADC bulletCount             ; Add specific bullet offset
-  ; STA pointerSub              ; Store pointer to bullet y subpixel
-  ; JSR StoreBulletSpeed
-  ; JSR SubPixelSubtract
-  ; STA spriteLayoutOriginY     ; Save sprite Y for collision
-  ; LDY #SPRITEX                ; Load sprite X
-  ; LDA #playerBulletXs         ; Load bullet X subpixel
-  ; CLC
-  ; ADC bulletCount             ; Add specific bullet offset
-  ; STA pointerSub              ; Store pointer to bullet x subpixel
-  ; JSR SubPixelAdd
-  ; STA spriteLayoutOriginX     ; Save sprite X for collision
+  LDX bulletCount             ; Get the velocity index of this bullet
+  LDA playerBulletVel, X
+  TAX
+  ; Set up velocity args for Y
+  LDA playerBulletMoveY, X    ; Velocity Lo
+  STA arg0
+  LDA playerBulletMoveY+32, X ; Velocity Hi
+  STA arg1
+  LDY #0                      ; Set Y register for sprite Y
+  LDA #playerBulletSub
+  CLC
+  ADC bulletCount
+  STA pointerSub
+  JSR SubPixelMove
+  LDA [pointerLo], Y
+  STA spriteLayoutOriginY
+  ; Set up velocity args for X
+  LDA playerBulletMoveX, X    ; Velocity Lo
+  STA arg0
+  LDA playerBulletMoveX+32, X ; Velocity Hi
+  STA arg1
+  LDY #SPRITEX
+  LDA #playerBulletSub
+  CLC
+  ADC bulletCount
+  STA pointerSub
+  JSR SubPixelMove
+  LDA [pointerLo], Y
+  STA spriteLayoutOriginX
   ; TODO collision
   ; Test Bounds
   LDA spriteLayoutOriginX     ; Are we within the bullet edge X?
