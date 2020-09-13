@@ -108,14 +108,25 @@ skelsprites:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Velocity tables
 
+; Player input patterns, matching up to move velocities below
+playerInput:
+  .db %00000001, %00000011, %00000010, %00000110
+  .db %00000100, %00001100, %00001000, %00001001
+
 ; Player velocity is based on 1.5 pixels per second
 playerMoveX:
-  .db $75,$75,$75,$75,$75,$75,$75,$75 ; subpixels/frame
-  .db $01,$01,$01,$01,$01,$01,$01,$01 ; pixels/frame (high bit is sign)
-
+  .db $80,$0F,$00,$0F,$80,$0F,$00,$0F
+  .db $01,$01,$00,$81,$81,$81,$00,$01
 playerMoveY:
-  .db $00,$00,$00,$00,$00,$00,$00,$00 ; subpixels/frame
-  .db $00,$00,$00,$00,$00,$00,$00,$00 ; pixels/frame (high bit is sign)
+  .db $00,$0F,$80,$0F,$00,$0F,$80,$0F
+  .db $00,$01,$01,$01,$00,$81,$81,$81
+
+playerBulletX:
+  .db $80,$3B,$78,$57,$00,$57,$78,$3B,$80,$3B,$78,$57,$00,$57,$78,$3B
+  .db $03,$03,$02,$01,$00,$81,$82,$83,$83,$83,$82,$81,$00,$01,$02,$03
+playerBulletY:
+  .db $00,$57,$78,$3B,$80,$3B,$78,$57,$00,$57,$78,$3B,$80,$3B,$78,$57
+  .db $00,$01,$02,$03,$03,$03,$02,$01,$00,$81,$82,$83,$83,$83,$82,$81
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Math tables

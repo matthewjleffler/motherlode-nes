@@ -75,6 +75,12 @@ BUTTOND           = %00000100
 BUTTONL           = %00000010
 BUTTONR           = %00000001
 
+; Player input
+MOVBUTTONR        = %00000001
+MOVBUTTOND        = %00000010
+MOVBUTTONL        = %00000100
+MOVBUTTONU        = %00001000
+
 ; Gameplay
 STATEMASK         = %00000011 ; Mask for lower two bits
 HICLEAR           = %00111111 ; Mask to clear high bits
@@ -86,13 +92,8 @@ BULLETEDGEW       = $FF - BULLETEDGE - $10
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
 MOV_MASK          = %01111111 ; Non-sign movement
-PLAYER_SPEED_HI   = 1         ; pixles/frame
-BULLET_SPEED_HI   = 3         ; pixles/frame
 PLAYER_SPEED_LO   = 127       ; subpixels in x/256
 BULLET_SPEED_LO   = 127       ; subpixels in x/256
-
-; Player move table
-playerLookup:
 
 ; Sprite lo addresses         ;                         n * s = t
 EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8

@@ -199,36 +199,40 @@ TestPlayerMove:
   STA pointerHi
   LDA #PLAYER
   STA pointerLo
-  ; Set up positions for atan2 and movement count
-  LDA #10                      ; Set up atan2 coords, set all to 1
-  STA arg0                    ; x1
-  STA arg1                    ; x2
-  STA arg2                    ; y1
-  STA arg3                    ; y2
-  ; Check inputs
-  JSR TestMoveUp
-  JSR TestMoveDown
-  JSR TestMoveLeft
-  JSR TestMoveRight
-  JSR CoordsEqual
+  ; Mask inputs to get player move direction
+  LDA buttons1                ; Test up, bit in right spot
+  AND #BUTTONU
+  STA arg0
+  LDA buttons1                ; Test right, bit in right spot
+  AND #BUTTONR
+  ORA arg0
+  STA arg0
+  LDA buttons1                ; Test down, bit needs to shift R
+  AND #BUTTOND
+  LSR A
+  ORA arg0
+  STA arg0
+  LDA buttons1
+  AND #BUTTONL                ; Test left, bit needs to shift L
+  ASL A
+  ORA arg0
   CMP #0                      ; Nothing pressed
   BEQ NoPlayerMove
   JMP DoPlayerMove
 NoPlayerMove:
   RTS                         ; Done, don't apply movement
 DoPlayerMove:
-  ; Positions are set up for Atan2
-  JSR Atan2
-  LSR A                  ; Only need 8 angles for player
-  LSR A                  ; LSR 5 times to / 32
-  LSR A
-  LSR A
-  LSR A
-  TAX                  ; Now we have the offset for the player velocities
+  LDX #0
+LoopFindPlayerMoveIndex:
+  CMP playerInput, X
+  BEQ ApplyPlayerMove
+  INX
+  JMP LoopFindPlayerMoveIndex
+ApplyPlayerMove:
   ; Set up velocity args for Y
   LDA playerMoveY, X
   STA arg0                    ; Velocity Lo
-  LDA playerMoveY+8, X
+  LDA playerMoveY+8, X        ; 8 directions
   STA arg1                    ; Velocity Hi
   LDY #0                      ; Set Y register for sprite Y
   LDA #playerSub              ; Set pointerSub for player subpixel Y
@@ -237,52 +241,12 @@ DoPlayerMove:
   ; Set up velocity args for X
   LDA playerMoveX, X
   STA arg0                    ; Velocity Lo
-  LDA playerMoveX+8, X
+  LDA playerMoveX+8, X        ; 8 directions
   STA arg1                    ; Velocity Hi
   LDY #SPRITEX                ; Set Y register for sprite X
   LDA #playerSub+1            ; Set pointerSub for player subpixel X
   STA pointerSub
   JSR SubPixelMove
-  RTS
-
-TestMoveUp:
-  LDA buttons1
-  AND #BUTTONU
-  BNE MoveUp
-  RTS
-MoveUp:
-  LDA #0
-  STA arg3                    ; y2 is 0
-  RTS
-
-TestMoveDown:
-  LDA buttons1
-  AND #BUTTOND
-  BNE MoveDown
-  RTS
-MoveDown:
-  LDA #20
-  STA arg3                    ; y2 is 2
-  RTS
-
-TestMoveLeft:
-  LDA buttons1
-  AND #BUTTONL
-  BNE MoveLeft
-  RTS
-MoveLeft:
-  LDA #0
-  STA arg1                    ; x2 is 0
-  RTS
-
-TestMoveRight:
-  LDA buttons1
-  AND #BUTTONR
-  BNE MoveRight
-  RTS
-MoveRight:
-  LDA #20
-  STA arg1                    ; x2 is 2
   RTS
 
 TestShootBullet:
@@ -643,13 +607,6 @@ UpdateSpriteLoop:
   BNE UpdateSpriteLoop
   RTS
 
-; StorePlayerSpeed:
-;   ; LDA #PLAYER_SPEED_LO
-;   ; STA speed
-;   ; LDA #PLAYER_SPEED_HI
-;   ; STA speed+1
-;   RTS
-
 StoreBulletSpeed:
   ; LDA #BULLET_SPEED_LO
   ; STA speed
@@ -720,7 +677,10 @@ CoordsNotEqual:
   RTS
 
 Atan2:
+  LDA #0
+  STA arg4
   LDA arg0
+  SEC
   SBC arg1
   BCS *+4
   EOR #$ff
@@ -728,6 +688,7 @@ Atan2:
   ROL arg4
 
   LDA arg2
+  SEC
   SBC arg3
   BCS *+4
   EOR #$ff
@@ -735,6 +696,7 @@ Atan2:
   ROL arg4
 
   LDA log2_tab,x
+  SEC
   SBC log2_tab,y
   BCC *+4
   EOR #$ff
