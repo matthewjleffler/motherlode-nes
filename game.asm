@@ -60,20 +60,20 @@ LoadPalettes:
   LDA #$00
   STA $2006                   ; write the low byte of $3F00 address
   LDX #$00                    ; start out at 0
-LoadPalettesLoop:
+.loop:
   LDA palette, x              ; load data from address (palette + x)
   STA $2007                   ; write to PPU
   INX
   CPX #$20                    ; Size of all pallete bytes
-  BNE LoadPalettesLoop        ; Branch to LoadPalettesLoop if loop not done
+  BNE .loop                   ; Branch to LoadPalettesLoop if loop not done
 
 LoadSprites:
   LDX #$00                    ; start at 0
   LDA #$FF                    ; fill with FF so sprites are hidden
-LoadSpriteLoop:
+.loop:
   STA $0200, X
   INX
-  BNE LoadSpriteLoop          ; Add until we loop back to 0
+  BNE .loop                   ; Add until we loop back to 0
 
 ; TODO move this to gameplay code
 AssignPlayerSprites:
@@ -82,12 +82,12 @@ AssignPlayerSprites:
   LDA #PLAYER
   STA pointerLo
   LDY #$00
-AssignPlayerSpriteLoop:
+.loop:
   LDA playersprites, Y
   STA [pointerLo], Y
   INY
   CPY #PLAYERSIZE             ; Loop until we have finished all the player bytes
-  BNE AssignPlayerSpriteLoop
+  BNE .loop
 
 ; TODO move this to gameplay code
 AssignEnemySprites:
@@ -96,12 +96,12 @@ AssignEnemySprites:
   LDA #ENEMY0
   STA pointerLo
   LDY #$00
-AssignEnemySpriteLoop:
+.loop:
   LDA skelsprites, Y
   STA [pointerLo], Y
   INY
   CPY #ENEMYSIZE
-  BNE AssignEnemySpriteLoop
+  BNE .loop
 
 LoadBackground:
   LDA $2002                   ; read PPU status to reset the high/low latch
@@ -116,20 +116,20 @@ LoadBackground:
   STA pointerHi               ; put the high byte of the address into pointer
   LDX #$00                    ; start at pointer + 0
   LDY #$00
-LoadBackgroundX:
-LoadBackgroundY:
+.loopX:
+.loopY:
   LDA [pointerLo], y          ; copy one background byte from address in
                               ; pointer plus Y
   STA $2007                   ; this runs 256 * 4 times
   INY                         ; inside loop counter
   CPY #$00
-  BNE LoadBackgroundY         ; run the inside loop 256 times before continuing
+  BNE .loopY                  ; run the inside loop 256 times before continuing
   ; End inner loop
   INC pointerHi               ; low byte went 0 to 256, so high byte needs to be
                               ; changed now
   INX
   CPX #$04
-  BNE LoadBackgroundX         ; run the outside loop 256 times before continuing
+  BNE .loopX                  ; run the outside loop 256 times before continuing
   ; End outer loop
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
@@ -175,14 +175,14 @@ ReadControllers:
   STA [pointerLo], Y
   LDA #$00
   STA [pointerLo], Y
-ReadControllerLoop:
+.controller:
   LDX #$08                    ; Setup counter
-ReadControllerButton:
+.button:
   LDA [pointerLo], Y
   LSR A                       ; bit0 -> carry
   ROL arg0                    ; bit0 <- carry
   DEX                         ; see if this loop is done
-  BNE ReadControllerButton    ; continue loop
+  BNE .button                 ; continue loop
   LDA arg0                    ; Load this frame's state to calculate freshness
   EOR buttons1, y             ; EOR to get changes
   AND arg0                    ; AND to only keep newly on bits
@@ -191,7 +191,7 @@ ReadControllerButton:
   STA buttons1, y
   INY
   CPY #$01                    ; Are we on controller 2?
-  BEQ ReadControllerLoop
+  BEQ .controller
   RTS
 
 TestPlayerMove:
@@ -217,18 +217,18 @@ TestPlayerMove:
   ASL A
   ORA arg0
   CMP #0                      ; Nothing pressed
-  BEQ NoPlayerMove
-  JMP DoPlayerMove
-NoPlayerMove:
+  BEQ .noPlayerMove
+  JMP .doPlayerMove
+.noPlayerMove:
   RTS                         ; Done, don't apply movement
-DoPlayerMove:
+.doPlayerMove:
   LDX #0
-LoopFindPlayerMoveIndex:
+.loop:
   CMP playerInput, X
-  BEQ ApplyPlayerMove
+  BEQ .apply
   INX
-  JMP LoopFindPlayerMoveIndex
-ApplyPlayerMove:
+  JMP .loop
+.apply:
   ; Set up velocity args for Y
   LDA playerMoveY, X
   STA arg0                    ; Velocity Lo
@@ -252,9 +252,9 @@ ApplyPlayerMove:
 TestShootBullet:
   LDA buttons1fresh
   AND #BUTTONA
-  BNE ShootBullet
+  BNE .shootBullet
   RTS
-ShootBullet:
+.shootBullet:
   LDA #SPRITEHI               ; Setup pointers for player
   STA pointerHi
   LDA #PLAYER
@@ -291,13 +291,13 @@ ShootBullet:
   LDX #0                      ; Bullet count
   LDY #0                      ; Flag for whether or not we shot, and pointer
   STY bulletCount             ; Count pointers for current bullet
-FindFreeBullet:
+.findFreeBullet:
   JSR GetBulletState
   CMP #BULL_OFF               ; If the bullet is off? Turn it on
-  BNE NextBullet
+  BNE .nextBullet
   ; Found a free bullet
   CPY #$00
-  BNE NextBullet              ; Have we already shot a bullet?
+  BNE .nextBullet             ; Have we already shot a bullet?
   LDA #BULL_MOV               ; Set the current bullet state to moving
   STA temp
   JSR SetBulletState
@@ -320,14 +320,14 @@ FindFreeBullet:
   STA playerBulletSub, X
   STA playerBulletSub+1, X
   LDY #$01                    ; Mark that we've already shot
-NextBullet:
+.nextBullet:
   LDA bulletCount
   CLC
   ADC #$10                    ; Move to next bullet pointer
   STA bulletCount
   INX                         ; Increment counter
   CPX #BULLETCOUNT
-  BNE FindFreeBullet          ; If not 0, check next bullet, or cycle the state
+  BNE .findFreeBullet         ; If not 0, check next bullet, or cycle the state
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -404,25 +404,24 @@ UpdateBullets:
   STX bulletCount
   LDA #STATEMASK              ; Are we on the anim tick? Increment the
   AND animTick                ; bullet animation counter if so
-  BEQ CountBulletAnim
+  BEQ .countAnim
   JMP UpdateBulletLoop
-CountBulletAnim:
+.countAnim:
   INC bulletAnim              ; Increment bullet anim counter
 UpdateBulletLoop:
   JSR GetBulletState          ; Temp now stores bullet state
   CMP #BULL_EXP               ; Are we exploding?
-  BEQ UpdateBulletExplode
+  BEQ .bulletExplode
   CMP #BULL_MOV               ; Are we moving?
-  BEQ UpdateBulletMove
-  ; Other bullet states do nothing
-  JMP IncrementBulletPointer
-UpdateBulletExplode:
+  BEQ .bulletMove
+  JMP .incrementPointer       ; Other bullet states do nothing
+.bulletExplode:
   JMP DoBulletExplode
-UpdateBulletMove:
+.bulletMove:
   JMP DoBulletMove
-IncrementBulletPointer:       ; We did nothing to the bullet, move the pointer
+.incrementPointer:            ; We did nothing to the bullet, move the pointer
   JSR MovePointerTwoRows      ; To the next bullet
-IncrementBulletLoop:
+IncrementBulletLoop:          ; Bullet update done
   LDX bulletCount
   INX
   STX bulletCount
@@ -471,25 +470,25 @@ DoBulletMove:
   ; Test Bounds
   LDA spriteLayoutOriginX     ; Are we within the bullet edge X?
   CMP #BULLETEDGE
-  BCC BulletLeftScreen
+  BCC .leftScreen
   CMP #BULLETEDGEW
-  BCS BulletLeftScreen
+  BCS .leftScreen
   LDA spriteLayoutOriginY     ; Are we within the bullet edge Y?
   CMP #BULLETEDGE
-  BCC BulletLeftScreen
+  BCC .leftScreen
   CMP #BULLETEDGEW
-  BCS BulletLeftScreen
-  JMP UpdateBulletLayout      ; Still on screen, normal sprite update
-BulletLeftScreen:
+  BCS .leftScreen
+  JMP .updateLayout           ; Still on screen, normal sprite update
+.leftScreen:
   JMP HideBullet              ; We left the screen, bullet is dead
-UpdateBulletLayout:
+.updateLayout:
   LDX #$02                    ; Bullet is 2 tiles tall
   JSR UpdateSpriteLayout      ; Update sprite layout
   LDA #STATEMASK              ; Check again if we're in an anim tick, if so
   AND animTick                ; update the anim, otherwise we're done
-  BEQ UpdateBulletAnim
+  BEQ .updateAnim
   JMP IncrementBulletLoop
-UpdateBulletAnim:
+.updateAnim:
   LDA bulletFrame             ; Move pointer back to where we stored it
   STA pointerLo               ; So we can update attributes
   LDA bulletAnim              ; Load the animation state
@@ -497,18 +496,18 @@ UpdateBulletAnim:
   ADC bulletCount             ; Add an offset of the current bullet count
   AND #STATEMASK              ; Check the bullet frame
   CMP #$03                    ; Frame 3
-  BEQ BulletAnim3
+  BEQ .frame3
   CMP #$02                    ; Frame 2
-  BEQ BulletAnim2
+  BEQ .frame2
   CMP #$01                    ; Frame 1
-  BEQ BulletAnim1
-;BulletAnim0
+  BEQ .frame1
+;frame0
   JMP AssignBulletAnim0
-BulletAnim1:
+.frame1:
   JMP AssignBulletAnim1
-BulletAnim2:
+.frame2:
   JMP AssignBulletAnim2
-BulletAnim3:
+.frame3:
   JMP AssignBulletAnim3
 
 AssignBulletAnim0:
@@ -577,7 +576,7 @@ AssignBulletAnim3:
 ; current bullet pointer
 ApplyBulletSettings:
   LDX #$00                    ; Starts our loop at 0
-ApplyBulletSettingsLoop:
+.loop:
   LDA bulletFrame, X
   LDY #SPRITETIL              ; Assign tile
   STA [pointerLo], Y
@@ -590,7 +589,7 @@ ApplyBulletSettingsLoop:
   STA pointerLo
   INX
   CPX #$04                    ; Check whether we're done with the loop
-  BNE ApplyBulletSettingsLoop
+  BNE .loop
   JMP IncrementBulletLoop
 
 ; Sets all sprites to hidden for a given layout
@@ -619,7 +618,7 @@ UpdateSpriteLayout:
   LDY #SPRITEX                ; Store sprite x origin
   LDA [pointerLo], Y
   STA spriteLayoutOriginX
-UpdateSpriteLoop:
+.loop:
   LDA spriteLayoutOriginY     ; Set sprite Y's
   LDY #$00                    ; Row y0
   STA [pointerLo], Y
@@ -638,7 +637,7 @@ UpdateSpriteLoop:
   ADC #TILE_WIDTH
   STA spriteLayoutOriginY
   DEX
-  BNE UpdateSpriteLoop
+  BNE .loop
   RTS
 
 ; Move subpixel based on velocity
@@ -693,13 +692,13 @@ SubPixelSubtract:
 CoordsEqual:
   LDA arg0                    ; x1
   CMP arg1                    ; x2
-  BNE CoordsNotEqual
+  BNE .notEqual
   LDA arg2                    ; y1
   CMP arg3                    ; y2
-  BNE CoordsNotEqual
+  BNE .notEqual
   LDA #0                      ; Both are equal
   RTS
-CoordsNotEqual:
+.notEqual:
   LDA #1                      ; Not equal
   RTS
 
@@ -716,22 +715,25 @@ Atan2:
   LDA arg0
   SEC
   SBC arg1
-  BCS *+4
+  BCS .o1
   EOR #$ff
+.o1:
   TAX
   ROL arg4
   LDA arg2
   SEC
   SBC arg3
-  BCS *+4
+  BCS .o2
   EOR #$ff
+.o2:
   TAY
   ROL arg4
   LDA log2_tab,x
   SEC
   SBC log2_tab,y
-  BCC *+4
+  BCC .o3
   EOR #$ff
+.o3:
   TAX
   LDA arg4
   ROL a
