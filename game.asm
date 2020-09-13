@@ -157,7 +157,7 @@ GameLoop:
   INC animTick                ; Increment animation tick
   JSR ReadControllers
   JSR TestPlayerMove
-  ; JSR TestShootBullet
+  JSR TestShootBullet
   JSR UpdatePlayerSprites
   JSR UpdateBullets
   RTS
@@ -490,22 +490,23 @@ DoBulletMove:
   ADC bulletCount
   STA pointerSub
   JSR SubPixelMove
-  LDA [pointerLo], Y
-  STA spriteLayoutOriginX
-  ; TODO collision
-  ; Test Bounds
-  LDA spriteLayoutOriginX     ; Are we within the bullet edge X?
-  CMP #BULLETEDGE
-  BCC .leftScreen
-  CMP #BULLETEDGEW
-  BCS .leftScreen
-  LDA spriteLayoutOriginY     ; Are we within the bullet edge Y?
-  CMP #BULLETEDGE
-  BCC .leftScreen
-  CMP #BULLETEDGEW
-  BCS .leftScreen
-  JMP .updateLayout           ; Still on screen, normal sprite update
-.leftScreen:
+  JSR StoreSpritePosition
+  LDA spriteLayoutOriginX
+  CLC
+  ADC #TILE_WIDTH
+  STA arg0                    ; Collision detection checking middle of bullet
+  LDA spriteLayoutOriginY
+  CLC
+  ADC #TILE_WIDTH
+  STA arg1                    ; Collision detection checking middle of bullet
+  LDA #0
+  STA arg2                    ; 0 width and height for collision, so we only
+  STA arg3                    ; Check a point
+  JSR TestWorldCollision
+  CMP #1                      ; We've collided
+  BEQ .collision
+  JMP .updateLayout           ; No collision
+.collision:
   JMP HideBullet              ; We left the screen, bullet is dead
 .updateLayout:
   LDX #$02                    ; Bullet is 2 tiles tall
