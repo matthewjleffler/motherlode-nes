@@ -157,7 +157,7 @@ GameLoop:
   INC animTick                ; Increment animation tick
   JSR ReadControllers
   JSR TestPlayerMove
-  JSR TestShootBullet
+  ; JSR TestShootBullet
   JSR UpdatePlayerSprites
   JSR UpdateBullets
   RTS
@@ -231,9 +231,9 @@ TestPlayerMove:
 .apply:
   JSR StoreSpritePosition     ; Store last position in case we need to move back
   LDA spriteLayoutOriginX
-  STA arg6                    ; x
+  STA spriteLastPosX          ; x
   LDA spriteLayoutOriginY
-  STA arg7                    ; y
+  STA spriteLastPosY          ; y
   ; Set up velocity args for Y
   LDA playerMoveY, X
   STA arg0                    ; Velocity Lo
@@ -255,25 +255,32 @@ TestPlayerMove:
   ; Test bounds
   JSR StoreSpritePosition     ; Get new position
   LDA spriteLayoutOriginX     ; Test X
-  CMP #PL_EDGE_LEFT           ; Is x < left?
-  BCC .leftBounds
-  CMP #PL_EDGE_RIGHT          ; Is right < X?
-  BCS .leftBounds
+  STA arg0                    ; Store X for collision later
+  ; CMP #PL_EDGE_LEFT           ; Is x < left?
+  ; BCC .collision
+  ; CMP #PL_EDGE_RIGHT          ; Is right < X?
+  ; BCS .collision
   LDA spriteLayoutOriginY     ; Test Y
-  CMP #PL_EDGE_TOP            ; Is y < top?
-  BCC .leftBounds
-  CMP #PL_EDGE_BOTTOM         ; Is bottom < Y?
-  BCS .leftBounds
-  JMP .collision
-.leftBounds:
+  STA arg1                    ; Store Y for collision later
+  ; CMP #PL_EDGE_TOP            ; Is y < top?
+  ; BCC .collision
+  ; CMP #PL_EDGE_BOTTOM         ; Is bottom < Y?
+  ; BCS .collision
+  ; Setup world collision args, already have TL args set up from bounds
+  LDA #2                      ; 2 tiles wide
+  STA arg2
+  LDA #3                      ; 3 tiles tall
+  JSR TestWorldCollision
+  CMP #1                      ; Is the move invalid?
+  BEQ .collision
+  RTS                         ; No collision
+.collision:
   LDY #0
-  LDA arg7
+  LDA spriteLastPosY
   STA [pointerLo], Y          ; Set Y back to where we started
   LDY #SPRITEX
-  LDA arg6
+  LDA spriteLastPosX
   STA [pointerLo], Y          ; Set X back to where we started
-.collision:
-  ; TODO test collision
   RTS
 
 TestShootBullet:
@@ -823,4 +830,57 @@ ManhattanDistance:
   BVC .finish                 ; if we didn't overflow, we're done
   LDA #$FF                    ; Just set result to full if we overflowed
 .finish:
+  RTS
+
+; Tests world collision at point
+; arg0 - top left corner x
+; arg1 - top left corner y
+; arg2 - tiles w
+; arg3 - tiles h
+; arg4 - will store temp values
+; returns - A will be 0 if not colliding, 1 if colliding
+TestWorldCollision:
+  LDA #HIGH(collision)        ; Setup pointer for collison table
+  STA pointerColHi
+  LDA #LOW(collision)
+  STA pointerColLo
+; Find Y row
+  LDA arg1                    ; Get tile at Y
+  LSR A                       ; LSR 3 times to be y/8 to get tile
+  LSR A
+  LSR A
+  TAY                         ; Now we have a Y
+  LDA pointerColLo            ; Look up the pointer offset for our Y
+  CLC
+  ADC collisionLookupY, Y
+  STA pointerColLo
+  LDA arg0                    ; Get tile at X
+  LSR A                       ; LSR 3 times to be x/8 to get tile
+  LSR A
+  LSR A
+  STA arg4                    ; Store our tile back in arg4, we're going to find
+  LSR A                       ; the collision byte with another 3 LSRs to
+  LSR A                       ; be tileX/8
+  LSR A
+  TAY                         ; Now we have an offset for the actual collision
+  LDA arg4                    ; Load the tile back into A
+  SEC
+  SBC collisionLookupX, Y     ; Subtract tiles to be in the right quadrant
+  TAX                         ; Number of tiles into this quadrant to count
+  LDA [pointerColLo], Y       ; Load the collision data
+.loopTest:
+  CPX #0                      ; See if the current left bit is the one to test
+  BEQ .doTest
+  ASL A                       ; Shift bits left
+  DEX
+  JMP .loopTest
+.doTest:
+  AND #COLLISIONMASK          ; Mask collision at this tile
+  CMP #COLLISIONMASK          ; Do we equal the collision mask? We're colliding
+  BEQ .foundCollision
+  ; TODO count through rest of tiles
+  LDA #0
+  RTS
+.foundCollision:
+  LDA #1
   RTS
