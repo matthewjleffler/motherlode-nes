@@ -74,9 +74,10 @@ BULLETCOUNT       = 4         ; Number of bullets to render
 BULLETEDGE        = 6         ; 1 pixel wider than movement speed
 BULLETEDGEW       = $FF - BULLETEDGE - $10
                               ; Right hand, bottom, includes bullet width
-PLAYER_MOVE_DIST  = 80        ; How far from the center the player can move
-PLAYER_CENTER_X   = 127 - TILE_WIDTH ; Center of player screen x
-PLAYER_CENTER_Y   = 127 - TILE_WIDTH * 2 ; Center of player screen y
+PL_EDGE_LEFT      = 10
+PL_EDGE_TOP       = 15
+PL_EDGE_RIGHT     = $FF - PL_EDGE_LEFT - TILE_WIDTH * 2
+PL_EDGE_BOTTOM    = $FF - PL_EDGE_TOP - TILE_WIDTH * 6
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement

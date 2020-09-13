@@ -254,18 +254,18 @@ TestPlayerMove:
   JSR SubPixelMove
   ; Test bounds
   JSR StoreSpritePosition     ; Get new position
-  LDA #PLAYER_CENTER_X        ; x1, y1 is screen center
-  STA arg0
-  LDA #PLAYER_CENTER_Y
-  STA arg2
-  LDA spriteLayoutOriginX     ; x2, y2 is player pos
-  STA arg1
-  LDA spriteLayoutOriginY
-  STA arg3
-  JSR ManhattanDistance       ; Get distance
-  CMP #PLAYER_MOVE_DIST
-  BCC .collision              ; Didn't leave range, jump to collision
-;leftBounds
+  LDA spriteLayoutOriginX     ; Test X
+  CMP #PL_EDGE_LEFT           ; Is x < left?
+  BCC .leftBounds
+  CMP #PL_EDGE_RIGHT          ; Is right < X?
+  BCS .leftBounds
+  LDA spriteLayoutOriginY     ; Test Y
+  CMP #PL_EDGE_TOP            ; Is y < top?
+  BCC .leftBounds
+  CMP #PL_EDGE_BOTTOM         ; Is bottom < Y?
+  BCS .leftBounds
+  JMP .collision
+.leftBounds:
   LDY #0
   LDA arg7
   STA [pointerLo], Y          ; Set Y back to where we started
@@ -824,4 +824,3 @@ ManhattanDistance:
   LDA #$FF                    ; Just set result to full if we overflowed
 .finish:
   RTS
-
