@@ -277,9 +277,9 @@ TestPlayerMove:
   RTS
 
 TestShootBullet:
-  LDA buttons1fresh
-  AND #BUTTONA
-  BNE .shootBullet
+  LDA #BULLETSHOOTMASK
+  AND animTick                ; Every 7 frames?
+  BEQ .shootBullet
   RTS
 .shootBullet:
   LDA #SPRITEHI               ; Setup pointers for player

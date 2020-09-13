@@ -69,6 +69,7 @@ BUTTONR           = %00000001
 
 ; Gameplay
 STATEMASK         = %00000011 ; Mask for lower two bits
+BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
 HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
 BULLETEDGE        = 6         ; 1 pixel wider than movement speed
