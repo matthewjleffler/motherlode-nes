@@ -254,22 +254,14 @@ TestPlayerMove:
   JSR SubPixelMove
   ; Test bounds
   JSR StoreSpritePosition     ; Get new position
-  LDA spriteLayoutOriginX     ; Test X
-  STA arg0                    ; Store X for collision later
-  ; CMP #PL_EDGE_LEFT           ; Is x < left?
-  ; BCC .collision
-  ; CMP #PL_EDGE_RIGHT          ; Is right < X?
-  ; BCS .collision
-  LDA spriteLayoutOriginY     ; Test Y
-  STA arg1                    ; Store Y for collision later
-  ; CMP #PL_EDGE_TOP            ; Is y < top?
-  ; BCC .collision
-  ; CMP #PL_EDGE_BOTTOM         ; Is bottom < Y?
-  ; BCS .collision
-  ; Setup world collision args, already have TL args set up from bounds
+  LDA spriteLayoutOriginX     ; Pixel X
+  STA arg0
+  LDA spriteLayoutOriginY     ; Pixel Y
+  STA arg1
   LDA #2                      ; 2 tiles wide
   STA arg2
   LDA #3                      ; 3 tiles tall
+  STA arg3
   JSR TestWorldCollision
   CMP #1                      ; Is the move invalid?
   BEQ .collision
@@ -837,30 +829,38 @@ ManhattanDistance:
 ; arg1 - top left corner y
 ; arg2 - tiles w
 ; arg3 - tiles h
-; arg4 - will store temp values
+; arg4 - store x tile afte calculating
+; arg5 - store original w
 ; returns - A will be 0 if not colliding, 1 if colliding
 TestWorldCollision:
   LDA #HIGH(collision)        ; Setup pointer for collison table
   STA pointerColHi
+  LDA arg2                    ; Load tile width
+  STA arg5                    ; Cache tile width in arg5
+.loopY:
   LDA #LOW(collision)
   STA pointerColLo
-; Find Y row
-  LDA arg1                    ; Get tile at Y
+  LDA arg1                    ; Y pixel
   LSR A                       ; LSR 3 times to be y/8 to get tile
   LSR A
-  LSR A
+  LSR A                       ; Now we have the tile
+  CLC
+  ADC arg3                    ; Add our current tile Y offset
   TAY                         ; Now we have a Y
   LDA pointerColLo            ; Look up the pointer offset for our Y
   CLC
   ADC collisionLookupY, Y
   STA pointerColLo
-  LDA arg0                    ; Get tile at X
+.loopX:
+  LDA arg0                    ; X pixel
   LSR A                       ; LSR 3 times to be x/8 to get tile
   LSR A
-  LSR A
+  LSR A                       ; Now we have the tile pos
+  CLC
+  ADC arg2                    ; Add current tile W
   STA arg4                    ; Store our tile back in arg4, we're going to find
-  LSR A                       ; the collision byte with another 3 LSRs to
-  LSR A                       ; be tileX/8
+  LSR A                       ;   the collision byte with another 3 LSRs to
+  LSR A                       ;   be tileX/8
   LSR A
   TAY                         ; Now we have an offset for the actual collision
   LDA arg4                    ; Load the tile back into A
@@ -868,19 +868,33 @@ TestWorldCollision:
   SBC collisionLookupX, Y     ; Subtract tiles to be in the right quadrant
   TAX                         ; Number of tiles into this quadrant to count
   LDA [pointerColLo], Y       ; Load the collision data
-.loopTest:
+.shiftBits:
   CPX #0                      ; See if the current left bit is the one to test
-  BEQ .doTest
+  BEQ .testBit
   ASL A                       ; Shift bits left
   DEX
-  JMP .loopTest
-.doTest:
+  JMP .shiftBits
+.testBit:
   AND #COLLISIONMASK          ; Mask collision at this tile
   CMP #COLLISIONMASK          ; Do we equal the collision mask? We're colliding
-  BEQ .foundCollision
-  ; TODO count through rest of tiles
+  BEQ .collision
+; Are we done looping?
+  DEC arg2                    ; Decrease W
+  LDA arg2                    ; Test to see if we finished
+  CMP #$FF                    ; Looped, done
+  BEQ .testFinishY            ; This row is done, test if Y is done
+  JMP .loopX                  ; Check next w
+.testFinishY:
+  DEC arg3                    ; Decrease H
+  LDA arg3                    ; Test to see if we finished
+  CMP #$FF                    ; Looped, done
+  BEQ .finish
+  LDA arg5                    ; Reset W
+  STA arg2
+  JMP .loopY
+.finish:
   LDA #0
   RTS
-.foundCollision:
+.collision:
   LDA #1
   RTS
