@@ -91,8 +91,8 @@ NEG_SIGN          = %10000000 ; Indicates negative movement
 MOV_MASK          = %01111111 ; Non-sign movement
 DODGE_ON          = %10000000 ; Whether or not the dodge bit is set
 DODGE_TIME_MASK   = %01111111 ; The time bits of dodge
-DODGE_TIME        = 7         ; 7/60 of a second
-DODGE_COOLDOWN    = 20        ; 1/2  of a second
+DODGE_TIME        = 7         ;  7/60 of a second
+DODGE_COOLDOWN    = 25        ; 25/60  of a second
 
 ; Sprite lo addresses         ;                         n * s = t
 EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8
