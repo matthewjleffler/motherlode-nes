@@ -233,10 +233,10 @@ TestPlayerMove:
   LDX #0
 .loop:
   CMP playerInput, X
-  BEQ .apply
+  BEQ .applyY
   INX
   JMP .loop
-.apply:
+.applyY:
   JSR StoreSpritePosition     ; Store last position in case we need to move back
   LDA spriteLayoutOriginX
   STA spriteLastPosX          ; x
@@ -251,7 +251,37 @@ TestPlayerMove:
   LDA #playerSub              ; Set pointerSub for player subpixel Y
   STA pointerSub
   JSR SubPixelMove
+  ; Test Y collision
+  JSR StoreSpritePosition     ; Store where we moved to
+  LDA playerMoveY+8, X        ; Load velocity again to check sign
+  AND #NEG_SIGN
+  CMP #NEG_SIGN               ; We're moving up, check top edge
+  BEQ .runCollisionY
+  LDA spriteLayoutOriginY     ; Collision test on bottom, move Y to test down
+  CLC                         ; by 3 tiles, the height of the player
+  ADC #TILES_PX_3
+  STA spriteLayoutOriginY
+.runCollisionY:
+  TXA                         ; Store X (player direction) for use layer
+  STA arg7
+  LDA spriteLayoutOriginX
+  STA arg0                    ; Collision X
+  LDA spriteLayoutOriginY
+  STA arg1                    ; Collision Y
+  LDA #2
+  STA arg2                    ; 2 tiles wide
+  LDA #0
+  STA arg3                    ; single line Y
+  JSR TestWorldCollision
+  CMP #0
+  BEQ .applyX                 ; No collision, we're good
+  LDY #0                      ; Got a collision, walk Y back
+  LDA spriteLastPosY
+  STA [pointerLo], Y
+.applyX:
   ; Set up velocity args for X
+  LDA arg7                    ; Get X we stored earlier back into X
+  TAX
   LDA playerMoveX, X
   STA arg0                    ; Velocity Lo
   LDA playerMoveX+8, X        ; 8 directions
@@ -260,27 +290,32 @@ TestPlayerMove:
   LDA #playerSub+1            ; Set pointerSub for player subpixel X
   STA pointerSub
   JSR SubPixelMove
-  ; Test bounds
-  JSR StoreSpritePosition     ; Get new position
-  LDA spriteLayoutOriginX     ; Pixel X
-  STA arg0
-  LDA spriteLayoutOriginY     ; Pixel Y
-  STA arg1
-  LDA #2                      ; 2 tiles wide
-  STA arg2
-  LDA #3                      ; 3 tiles tall
-  STA arg3
+  ; Test Collision X
+  JSR StoreSpritePosition     ; Store where we moved to
+  LDA playerMoveX+8, X        ; Load velocity up again to check sign
+  AND #NEG_SIGN
+  CMP #NEG_SIGN
+  BEQ .runCollisionX
+  LDA spriteLayoutOriginX     ; Collision test on right, move X to test right by
+  CLC                         ; 2 tiles, the width of the player
+  ADC #TILES_PX_2
+  STA spriteLayoutOriginX
+.runCollisionX:
+  LDA spriteLayoutOriginX
+  STA arg0                    ; Collision X
+  LDA spriteLayoutOriginY
+  STA arg1                    ; Collision Y
+  LDA #0
+  STA arg2                    ; Single line X
+  LDA #3
+  STA arg3                    ; 3 tiles high
   JSR TestWorldCollision
-  CMP #1                      ; Is the move invalid?
-  BEQ .collision
-  RTS                         ; No collision
-.collision:
-  LDY #0
-  LDA spriteLastPosY
-  STA [pointerLo], Y          ; Set Y back to where we started
-  LDY #SPRITEX
+  CMP #0
+  BEQ .done                   ; No collision, we're good
+  LDY #SPRITEX                ; Got a collision, walk X back
   LDA spriteLastPosX
-  STA [pointerLo], Y          ; Set X back to where we started
+  STA [pointerLo], Y
+.done:
   RTS
 
 TestShootBullet:

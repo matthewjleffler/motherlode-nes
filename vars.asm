@@ -90,6 +90,9 @@ PL_EDGE_TOP       = 15
 PL_EDGE_RIGHT     = $FF - PL_EDGE_LEFT - TILE_WIDTH * 2
 PL_EDGE_BOTTOM    = $FF - PL_EDGE_TOP - TILE_WIDTH * 6
 
+TILES_PX_3        = 3 * 8     ; 3 tiles high in pixels
+TILES_PX_2        = 2 * 8     ; 2 tiles high in pixels
+
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
 MOV_MASK          = %01111111 ; Non-sign movement
