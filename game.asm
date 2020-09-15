@@ -199,23 +199,31 @@ TestPlayerMove:
   STA pointerHi
   LDA #PLAYER
   STA pointerLo
-  ; Mask inputs to get player move direction
-  LDA buttons1                ; Test up, bit in right spot
-  AND #BUTTONU
+  LDA buttons1                ; Get controller input
+  AND #MOVE_INPUT             ; Mask out just the movement bits
+  STA arg0                    ; Store raw movement input
+;testUD
+  LDA buttons1                ; Cancel out opposite direction movement
+  AND #MASK_UD                ; Cancel out opposite direction movement
+  CMP #MASK_UD                ; Are we pressing UD at once?
+  BEQ .removeUD
+  JMP .testRL
+.removeUD:
+  LDA arg0                    ; Load the pressed values
+  AND #REMOVE_UD              ; Mask out the remove bits
+  STA arg0                    ; Store change
+.testRL:
+  LDA buttons1                ; Load the pressed values
+  AND #MASK_LR                ; Are we pressing LR at once?
+  CMP #MASK_LR
+  BEQ .removeLR
+  JMP .testNoMove
+.removeLR:
+  LDA arg0                    ; Load the pressed values
+  AND #REMOVE_LR              ; Mask out the remove bits
   STA arg0
-  LDA buttons1                ; Test right, bit in right spot
-  AND #BUTTONR
-  ORA arg0
-  STA arg0
-  LDA buttons1                ; Test down, bit needs to shift R
-  AND #BUTTOND
-  LSR A
-  ORA arg0
-  STA arg0
-  LDA buttons1
-  AND #BUTTONL                ; Test left, bit needs to shift L
-  ASL A
-  ORA arg0
+.testNoMove:
+  LDA arg0
   CMP #0                      ; Nothing pressed
   BEQ .noPlayerMove
   JMP .doPlayerMove

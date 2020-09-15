@@ -106,18 +106,20 @@ playersprites:
   .db $90,  $05,  %00000000,  $88
 
 skelsprites:
-  .db $44,  $0A,  %00000010,  $84
-  .db $44,  $0A,  %01000010,  $8C
-  .db $4C,  $0B,  %00000010,  $84
-  .db $4C,  $0B,  %01000010,  $8C
+  .db $44,  $0A,  %00000010,  $AF
+  .db $44,  $0A,  %01000010,  $B7
+  .db $4C,  $0B,  %00000010,  $AF
+  .db $4C,  $0B,  %01000010,  $B7
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Velocity tables
 
 ; Player input patterns, matching up to move velocities below
 playerInput:
-  .db %00000001, %00000011, %00000010, %00000110
-  .db %00000100, %00001100, %00001000, %00001001
+      ; R        ; DR       ; D         ; DL
+  .db %00000001, %00000101, %00000100, %00000110
+      ; L        ; UL       ; U         ; UR
+  .db %00000010, %00001010, %00001000, %00001001
 
 ; Player movement velocity table
 playerMoveX:

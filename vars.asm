@@ -70,6 +70,11 @@ BUTTONU           = %00001000
 BUTTOND           = %00000100
 BUTTONL           = %00000010
 BUTTONR           = %00000001
+MOVE_INPUT        = %00001111
+MASK_UD           = %00001100
+MASK_LR           = %00000011
+REMOVE_UD         = %11110011
+REMOVE_LR         = %11111100
 
 ; Gameplay
 COLLISIONMASK     = %10000000 ; Mask for collision bit
