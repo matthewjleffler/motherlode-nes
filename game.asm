@@ -307,11 +307,14 @@ TestPlayerMove:
 .runCollisionY:
   TXA                         ; Store X (player direction) for use layer
   STA arg7
-  LDA spriteLayoutOriginX
+  LDA spriteLayoutOriginX     ; Offset in slightly, to make movement smoother
+  CLC                         ; Through gaps
+  ADC #TILE_HALF
+  STA spriteLayoutOriginX
   STA arg0                    ; Collision X
   LDA spriteLayoutOriginY
   STA arg1                    ; Collision Y
-  LDA #2
+  LDA #1
   STA arg2                    ; 2 tiles wide
   LDA #0
   STA arg3                    ; single line Y
@@ -351,6 +354,7 @@ TestPlayerMove:
   JSR SubPixelMove
   ; Test Collision X
   JSR StoreSpritePosition     ; Store where we moved to
+  INC spriteLayoutOriginX     ; Move check to the right by a pixel
   LDA playerMoveX+8, X        ; Load velocity up again to check sign
   AND #NEG_SIGN
   CMP #NEG_SIGN
@@ -359,6 +363,8 @@ TestPlayerMove:
   CLC                         ; 2 tiles, the width of the player
   ADC #TILES_PX_2
   STA spriteLayoutOriginX
+  DEC spriteLayoutOriginX
+  DEC spriteLayoutOriginX     ; 2 pixels to the left, 1 for prev. 1 for padding
 .runCollisionX:
   LDA spriteLayoutOriginX
   STA arg0                    ; Collision X
