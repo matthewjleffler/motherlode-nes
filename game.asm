@@ -195,6 +195,33 @@ ReadControllers:
   RTS
 
 TestPlayerMove:
+  ; Check Dodge first
+  LDA playerDodge             ; Count dodge timers
+  BEQ .testDodge              ; No, check if we're starting
+  DEC playerDodge             ; Yes, decrement it
+  LDA playerDodge
+  AND #DODGE_TIME_MASK        ; Check the time bits - did time run out?
+  BNE .beginMove              ; No - keep doing whatever we were doing
+  LDA playerDodge             ; Yes - check if we're dodging or on cooldown
+  AND #DODGE_ON
+  CMP #DODGE_ON               ; Dodging, start the cooldown
+  BEQ .startDodgeCooldown
+  LDA #0                      ; Cooldown ran out
+  STA playerDodge             ; Clear dodge
+  JMP .beginMove
+.startDodgeCooldown:
+  LDA #DODGE_COOLDOWN
+  STA playerDodge
+  JMP .beginMove
+.testDodge:
+  LDA buttons1
+  AND #BUTTONB                ; Are we pressing B?
+  BEQ .beginMove              ; No - just move
+  LDA #DODGE_ON               ; Yes - set dodging bit
+  CLC
+  ADC #DODGE_TIME             ; Add the dodge timer
+  STA playerDodge
+.beginMove:
   LDA #SPRITEHI               ; Setup pointers for player
   STA pointerHi
   LDA #PLAYER
@@ -247,6 +274,22 @@ TestPlayerMove:
   STA arg0                    ; Velocity Lo
   LDA playerMoveY+8, X        ; 8 directions
   STA arg1                    ; Velocity Hi
+  ; Check dodging
+  LDA playerDodge
+  AND #DODGE_ON
+  CMP #0                      ; Not dodging
+  BEQ .moveY
+  ; 4x velocity
+  LDA arg1                    ; Load current velocity hi
+  ASL A                       ; Multiply current by 4
+  ASL A
+  AND #MOV_MASK               ; Clear off hi bit in case
+  STA arg1                    ; Save cleared scaled velocity
+  LDA playerMoveY+8, X        ; Load original velocity again
+  AND #NEG_SIGN               ; Get negative sign
+  ORA arg1                    ; Combine scaled velocity with sign
+  STA arg1                    ; Save sign
+.moveY:
   LDY #0                      ; Set Y register for sprite Y
   LDA #playerSub              ; Set pointerSub for player subpixel Y
   STA pointerSub
@@ -286,6 +329,22 @@ TestPlayerMove:
   STA arg0                    ; Velocity Lo
   LDA playerMoveX+8, X        ; 8 directions
   STA arg1                    ; Velocity Hi
+  ; Check dodging
+  LDA playerDodge
+  AND #DODGE_ON
+  CMP #0                      ; Not dodging
+  BEQ .moveX
+  ; 4x velocity
+  LDA arg1                    ; Load current velocity hi
+  ASL A                       ; Multiply current by 4
+  ASL A
+  AND #MOV_MASK               ; Clear off hi bit in case
+  STA arg1                    ; Save cleared scaled velocity
+  LDA playerMoveX+8, X        ; Load original velocity again
+  AND #NEG_SIGN               ; Get negative sign
+  ORA arg1                    ; Combine scaled velocity with sign
+  STA arg1                    ; Save sign
+.moveX:
   LDY #SPRITEX                ; Set Y register for sprite X
   LDA #playerSub+1            ; Set pointerSub for player subpixel X
   STA pointerSub
