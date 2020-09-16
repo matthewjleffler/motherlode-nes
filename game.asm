@@ -425,16 +425,28 @@ TestShootBullet:
   LDY #0
   LDA [pointerLo], Y          ; Load player Y
   STA spriteLayoutOriginY     ; Store player Y
+  STA spriteLastPosY
   CLC
   ADC #TILE_WIDTH             ; Center of bullet
-  STA arg2                    ; Store center in arg1 for atan2
+  STA arg2                    ; Store center in arg2 for atan2
   LDY #SPRITEX                ; Load player X
   LDA [pointerLo], Y
   STA spriteLayoutOriginX     ; Store player X
+  STA spriteLastPosX
   CLC
   ADC #TILE_WIDTH             ; Center of bullet
   STA arg0                    ; Store center in arg0 for atan2
+  JSR FindClosestEnemyIndex
+  TAX                         ; Got index, put in X
+  CMP #$FF                    ; No enemy to shoot at? Don't shoot
+  BNE .shootAtEnemy
+  RTS
+.shootAtEnemy:
   LDA #ENEMY0                 ; Setup pointers for enemy
+  STA pointerLo
+  LDA enemyOffset, X          ; Get offset from LUT
+  CLC
+  ADC pointerLo               ; Offset pointer to the correct enemy
   STA pointerLo
   LDY #0
   LDA [pointerLo], Y          ; Load enemy Y
@@ -470,10 +482,10 @@ TestShootBullet:
   ADC bulletCount
   STA pointerLo
   LDY #$00
-  LDA spriteLayoutOriginY     ; Player Y stored earlier
+  LDA spriteLastPosY          ; Player Y stored earlier
   STA [pointerLo], Y          ; Apply player Y
   LDY #SPRITEX
-  LDA spriteLayoutOriginX     ; Player X stored earlier
+  LDA spriteLastPosX          ; Player X stored earlier
   STA [pointerLo], Y          ; Apply player X
   ; Set bullet velocity
   LDA arg1                    ; Previously saved velocity
@@ -935,6 +947,40 @@ Atan2:
   TAY
   LDA atan_tab,x
   EOR octant_adjust,y
+  RTS
+
+; Based on the player position, find the closest
+; *** should be center / up of player?
+; Stores index in A
+FindClosestEnemyIndex:
+  ; Arg 0 and Arg 2 are set up for player now, from test shooting
+  LDX #0                      ; Start count at 0
+  LDA #$FF                    ; Set max distance in arg7, to check against
+  STA arg7
+  STA arg6                    ; Set a sentinel value of FF in result index
+  LDA #ENEMY0
+  STA pointerLo               ; Setup pointer for enemy
+.loop:
+  JSR StoreSpritePosition
+  LDA spriteLayoutOriginX
+  STA arg1                    ; Put enemy X in arg1
+  LDA spriteLayoutOriginY
+  STA arg3                    ; Put enemy Y in arg3
+  JSR ManhattanDistance       ; Get distance in A
+  CLC
+  CMP arg7                    ; Compare to current lowest distance
+  BCC .smallest
+  JMP .count
+.smallest:
+  STA arg7                    ; What we have now is now smallest distance
+  TXA
+  STA arg6                    ; Store the new lowest index in arg6
+.count:
+  INX                         ; Increment X
+  JSR MovePointerTwoRows      ; Move pointer to next enemy
+  CPX #ENEMYCOUNT
+  BNE .loop
+  LDA arg6                    ; Record the lowest index we got
   RTS
 
 ; Calclulate distance between two points

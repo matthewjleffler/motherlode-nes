@@ -111,6 +111,10 @@ skelsprites:
   .db $4C,  $0D,  %00000010,  $AF
   .db $4C,  $0D,  %01000010,  $B7
 
+; Gets enemy sprite pointer by index
+enemyOffset:
+  .db 0, ENEMYSIZE, 2 * ENEMYSIZE, 3 * ENEMYSIZE, 4 * ENEMYSIZE, 5 * ENEMYSIZE
+
 ; Enemy spawn point - tile * tile width = pixel location
 enemySpawnX:
   .db 10 * TILE_WIDTH,  4 * TILE_WIDTH, 26 * TILE_WIDTH, 16 * TILE_WIDTH,  4 * TILE_WIDTH, 16 * TILE_WIDTH
