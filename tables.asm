@@ -106,10 +106,17 @@ playersprites:
   .db $90,  $05,  %00000000,  $88
 
 skelsprites:
-  .db $44,  $0A,  %00000010,  $AF
-  .db $44,  $0A,  %01000010,  $B7
-  .db $4C,  $0B,  %00000010,  $AF
-  .db $4C,  $0B,  %01000010,  $B7
+  .db $44,  $0C,  %00000010,  $AF
+  .db $44,  $0C,  %01000010,  $B7
+  .db $4C,  $0D,  %00000010,  $AF
+  .db $4C,  $0D,  %01000010,  $B7
+
+; Enemy spawn point - tile * tile width = pixel location
+enemySpawnX:
+  .db 10 * TILE_WIDTH,  4 * TILE_WIDTH, 26 * TILE_WIDTH, 16 * TILE_WIDTH,  4 * TILE_WIDTH, 16 * TILE_WIDTH
+
+enemySpawnY:
+  .db  6 * TILE_WIDTH, 18 * TILE_WIDTH, 18 * TILE_WIDTH,  8 * TILE_WIDTH, 12 * TILE_WIDTH, 24 * TILE_WIDTH
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Velocity tables

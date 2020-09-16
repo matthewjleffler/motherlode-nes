@@ -24,6 +24,7 @@ buttons2                .rs 1 ; controller 2 buttons
 buttons1fresh           .rs 1 ; controller 1 buttons fresh
 buttons2fresh           .rs 1 ; controller 2 buttons fresh
 animTick                .rs 1 ; Slows down animation counting
+seed                    .rs 2 ; Stores prng seed
 bulletAnim              .rs 1 ; Bullet anim state
 spriteLayoutOriginY     .rs 1 ; Y of sprite origin
 spriteLayoutOriginX     .rs 1 ; X of sprite origin
@@ -85,6 +86,7 @@ STATEMASK         = %00000011 ; Mask for lower two bits
 BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
 HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
+ENEMYCOUNT        = 6         ; Max number of enemies
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
@@ -102,8 +104,8 @@ ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
 ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
                               ;                 = 232         = 58 / 64
 
-PLAYERSIZE        = 24        ; player byte size
-ENEMYSIZE         = 16        ; enemy byte size
+PLAYERSIZE        = 6 * 4     ; player byte size
+ENEMYSIZE         = 4 * 4     ; enemy byte size
 
 ; Animation
 BULLETNOFL        = %00000001 ; Bullet attributes with flipping and color

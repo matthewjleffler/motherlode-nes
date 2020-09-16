@@ -95,12 +95,40 @@ AssignEnemySprites:
   STA pointerHi
   LDA #ENEMY0
   STA pointerLo
-  LDY #$00
-.loop:
+  LDX #6                      ; 6 enemy spawns
+.loopX:
+  LDY #0
+.loopY
   LDA skelsprites, Y
   STA [pointerLo], Y
   INY
   CPY #ENEMYSIZE
+  BNE .loopY                  ; Increment Y loop
+  LDA pointerLo
+  CLC
+  ADC #ENEMYSIZE
+  STA pointerLo
+  DEX
+  CPX #0
+  BNE .loopX
+
+AssignEnemyPositions:
+  LDA #ENEMY0
+  STA pointerLo
+  LDX #0
+.loop:
+  LDY #0
+  LDA enemySpawnY, X
+  STA [pointerLo], Y
+  LDY #SPRITEX
+  LDA enemySpawnX, X
+  STA [pointerLo], Y
+  LDA pointerLo
+  CLC
+  ADC #ENEMYSIZE
+  STA pointerLo
+  INX
+  CPX #ENEMYCOUNT
   BNE .loop
 
 LoadBackground:
@@ -160,6 +188,7 @@ GameLoop:
   JSR TestShootBullet
   JSR UpdatePlayerSprites
   JSR UpdateBullets
+  JSR UpdateEnemies
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -305,7 +334,7 @@ TestPlayerMove:
   ADC #TILES_PX_3
   STA spriteLayoutOriginY
 .runCollisionY:
-  TXA                         ; Store X (player direction) for use layer
+  TXA                         ; Store X (player direction) for use later
   STA arg7
   LDA spriteLayoutOriginX     ; Offset in slightly, to make movement smoother
   CLC                         ; Through gaps
@@ -727,6 +756,22 @@ ApplyBulletSettings:
   BNE .loop
   JMP IncrementBulletLoop
 
+UpdateEnemies:
+  LDA #SPRITEHI
+  STA pointerHi
+  LDA #ENEMY0
+  STA pointerLo
+  LDA #0
+  STA arg0
+.loop:
+  LDX #2
+  JSR UpdateSpriteLayout
+  INC arg0
+  LDA arg0
+  CMP #ENEMYCOUNT
+  BNE .loop
+  RTS
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Utils
 
@@ -1006,4 +1051,33 @@ TestWorldCollision:
   RTS
 .collision:
   LDA #1
+  RTS
+
+; Returns a random 8-bit number in A (0-255), clobbers arg0
+RNG:
+  LDA seed+1
+  STA arg0 ; store copy of high byte
+  ; compute seed+1 ($39>>1 = %11100)
+  LSR A ; shift to consume zeroes on left...
+  LSR A
+  LSR A
+  STA seed+1 ; now recreate the remaining bits in reverse order... %111
+  LSR A
+  EOR seed+1
+  LSR A
+  EOR seed+1
+  EOR seed+0 ; recombine with original low byte
+  STA seed+1
+  ; compute seed+0 ($39 = %111001)
+  LDA arg0 ; original high byte
+  STA seed+0
+  ASL A
+  EOR seed+0
+  ASL A
+  EOR seed+0
+  ASL A
+  ASL A
+  ASL A
+  EOR seed+0
+  STA seed+0
   RTS
