@@ -450,13 +450,14 @@ TestShootBullet:
   STA pointerLo
   LDY #0
   LDA [pointerLo], Y          ; Load enemy Y
-  STA arg3                    ; Store enemy Y in arg3 (y2)
+  CLC
+  ADC #TILE_WIDTH             ; Add half tile for enemy center
+  STA arg3                    ; Store enemy center Y in arg3 (y2)
   LDY #SPRITEX
   LDA [pointerLo], Y          ; Load enemy X
   CLC
   ADC #TILE_WIDTH             ; Add half tile for enemy center
   STA arg1                    ; Store enemy X in arg1 (x2)
-  ; TODO equals
   JSR Atan2                   ; Get degrees between player and enemy
   LSR A                       ; LSR 4 times to get 32 degrees
   LSR A
@@ -963,9 +964,13 @@ FindClosestEnemyIndex:
 .loop:
   JSR StoreSpritePosition
   LDA spriteLayoutOriginX
-  STA arg1                    ; Put enemy X in arg1
+  CLC
+  ADC #TILE_WIDTH
+  STA arg1                    ; Put enemy center X in arg1
   LDA spriteLayoutOriginY
-  STA arg3                    ; Put enemy Y in arg3
+  CLC
+  ADC #TILE_WIDTH
+  STA arg3                    ; Put enemy center Y in arg3
   JSR ManhattanDistance       ; Get distance in A
   CLC
   CMP arg7                    ; Compare to current lowest distance
