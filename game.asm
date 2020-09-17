@@ -315,6 +315,8 @@ TestPlayerMove:
   STA pointerSub
   JSR SubPixelMove            ; Do movement
   LDA playerPosY+1            ; Load new player Y pos
+  SEC
+  SBC #TILE_WIDTH             ; Offset up to top edge
   STA posY                    ; Store the value in the Y arg
   ; Test Y collision
   LDA velSign                 ; Check sign from earlier
@@ -325,6 +327,8 @@ TestPlayerMove:
   STA posY                    ; Store the change
 .runCollisionY:
   LDA playerPosX+1            ; Load player X pos
+  SEC
+  SBC #TILE_WIDTH             ; Offset to left edge
   CLC
   ADC #TILE_HALF              ; Offset it slightly to squeeze through gaps
   STA posX                    ; Store collision X
@@ -355,6 +359,8 @@ TestPlayerMove:
   STA pointerSub
   JSR SubPixelMove            ; Do move
   LDA playerPosX+1
+  SEC
+  SBC #TILE_WIDTH             ; Offset back to left edge
   STA posX                    ; Store the value in the X arg
   ; Test X collision
   LDA velSign
@@ -365,6 +371,8 @@ TestPlayerMove:
   STA posX
 .runCollisionX:
   LDA playerPosY+1            ; Load player Y position
+  SEC
+  SBC #TILE_WIDTH             ; Offset to top edge
   STA posY                    ; Store y position
   LDA #0
   STA tilesW                  ; Single line X
@@ -494,12 +502,16 @@ UpdatePlayerSprites:
   STA pointerHi
   LDA #PLAYER                 ; Player low bytes
   STA pointerLo
-  ; Apply player pos to player sprite 0
+  ; Apply player pos to player sprite 0, offset by player w/h
   LDY #0
   LDA playerPosY+1
+  SEC
+  SBC #TILE_WIDTH             ; Offset up by one tile
   STA [pointerLo], Y
   LDY #SPRITEX
   LDA playerPosX+1
+  SEC
+  SBC #TILE_WIDTH             ; Offset left by one tile
   STA [pointerLo], Y
   JSR UpdateSpriteLayout      ; Update rest of sprites now
   RTS
