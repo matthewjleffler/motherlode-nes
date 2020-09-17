@@ -649,6 +649,27 @@ DoBulletMove:
   CLC
   ADC #TILE_WIDTH
   STA arg1                    ; Collision detection checking middle of bullet
+  ; Test collsiion with enemies
+  JSR FindClosestEnemyIndex
+  CMP #$FF                    ; Sentinel index, Nothing nearby
+  BEQ .worldCollision
+  ; TODO store index to apply damage
+  LDA arg7                    ; The distance stored by the search
+  CMP #PLAYER_BULLET_RAD      ; Is it less than the player hit distance?
+  BCC .hitEnemy
+.worldCollision:
+  ; x and y are still set up from enemy check, but set the pointers back
+  LDA bulletFrame
+  STA pointerLo
+  JSR StoreSpritePosition
+  LDA spriteLayoutOriginX
+  CLC
+  ADC #TILE_WIDTH             ; Center of bullet x
+  STA arg0
+  LDA spriteLayoutOriginY
+  CLC
+  ADC #TILE_WIDTH             ; Center of bullet y
+  STA arg1
   LDA #0
   STA arg2                    ; 0 width and height for collision, so we only
   STA arg3                    ; Check a point
@@ -656,6 +677,10 @@ DoBulletMove:
   CMP #1                      ; We've collided
   BEQ .collision
   JMP .updateLayout           ; No collision
+.hitEnemy:
+  LDA bulletFrame
+  STA pointerLo
+  ; TODO apply damage
 .collision:
   JMP HideBullet              ; We left the screen, bullet is dead
 .updateLayout:
@@ -950,11 +975,12 @@ Atan2:
   EOR octant_adjust,y
   RTS
 
-; Based on the player position, find the closest
-; *** should be center / up of player?
+; Based on the source position, find the closest enemy
+; arg0 - source X
+; arg1 - source Y
 ; Stores index in A
+; Stores distance in arg7
 FindClosestEnemyIndex:
-  ; Arg 0 and Arg 2 are set up for player now, from test shooting
   LDX #0                      ; Start count at 0
   LDA #$FF                    ; Set max distance in arg7, to check against
   STA arg7

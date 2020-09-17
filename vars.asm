@@ -87,6 +87,7 @@ BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
 HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
 ENEMYCOUNT        = 6         ; Max number of enemies
+PLAYER_BULLET_RAD = 10        ; Distance player bullets can hit at
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
