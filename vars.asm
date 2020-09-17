@@ -11,7 +11,8 @@ arg4                    .rs 1 ; " "
 arg5                    .rs 1 ; " "
 arg6                    .rs 1 ; " "
 arg7                    .rs 1 ; " "
-return                  .rs 1 ; Reusable return arg
+arg8                    .rs 1 ; " "
+arg9                    .rs 1 ; " "
 pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
 pointerSub              .rs 1 ; pointer to subpixel
@@ -45,7 +46,8 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 10 - ??
                               ; 11 - ??
                               ; 88776655 44332211
-playerSub               .rs 2 ; Player subpixel, y+0, x+1
+playerPosX              .rs 2 ; Lo sub, hi pixel
+playerPosY              .rs 2 ; Lo sub, hi pixel
 playerBulletSub         .rs 8 ; 4 * 2
 playerBulletVel         .rs 4 ; 4 (indexes)
 playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
@@ -88,6 +90,8 @@ HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
 ENEMYCOUNT        = 6         ; Max number of enemies
 PLAYER_BULLET_RAD = 10        ; Distance player bullets can hit at
+PLAYER_SPAWN_X    = $80
+PLAYER_SPAWN_Y    = $80
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
@@ -122,3 +126,24 @@ BULLFRAME3        = $09
 BULL_OFF          = $00
 BULL_MOV          = $01
 BULL_EXP          = $02
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments
+
+; Positional
+posX              = arg0
+posY              = arg1
+
+; Tile sizes
+tilesW            = arg2
+tilesH            = arg3
+tilesX            = arg4
+tilesWOriginal    = arg5
+
+; Player movement
+playerMoveDir     = arg9
+
+; Subpixel movement
+velLo             = arg0
+velHi             = arg1
+velSign           = arg2

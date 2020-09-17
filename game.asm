@@ -160,6 +160,13 @@ LoadBackground:
   BNE .loopX                  ; run the outside loop 256 times before continuing
   ; End outer loop
 
+; Initialize Variables
+  LDA #PLAYER_SPAWN_X         ; Set up player spawn position
+  STA playerPosX+1
+  LDA #PLAYER_SPAWN_Y
+  STA playerPosY+1
+  ; TODO set up game state - title etc
+
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 
 Forever:
@@ -185,10 +192,10 @@ GameLoop:
   INC animTick                ; Increment animation tick
   JSR ReadControllers
   JSR TestPlayerMove
-  JSR TestShootBullet
   JSR UpdatePlayerSprites
-  JSR UpdateBullets
-  JSR UpdateEnemies
+  ; JSR TestShootBullet
+  ; JSR UpdateBullets
+  ; JSR UpdateEnemies
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -226,8 +233,8 @@ ReadControllers:
 TestPlayerMove:
   ; Check Dodge first
   LDA playerDodge             ; Count dodge timers
-  BEQ .testDodge              ; No, check if we're starting
-  DEC playerDodge             ; Yes, decrement it
+  BEQ .testDodge              ; No value, check if we're dodging now
+  DEC playerDodge             ; A value, decrement it
   LDA playerDodge
   AND #DODGE_TIME_MASK        ; Check the time bits - did time run out?
   BNE .beginMove              ; No - keep doing whatever we were doing
@@ -251,23 +258,19 @@ TestPlayerMove:
   ADC #DODGE_TIME             ; Add the dodge timer
   STA playerDodge
 .beginMove:
-  LDA #SPRITEHI               ; Setup pointers for player
-  STA pointerHi
-  LDA #PLAYER
-  STA pointerLo
   LDA buttons1                ; Get controller input
   AND #MOVE_INPUT             ; Mask out just the movement bits
-  STA arg0                    ; Store raw movement input
+  STA playerMoveDir           ; Store raw movement input
 ;testUD
   LDA buttons1                ; Cancel out opposite direction movement
-  AND #MASK_UD                ; Cancel out opposite direction movement
+  AND #MASK_UD
   CMP #MASK_UD                ; Are we pressing UD at once?
   BEQ .removeUD
   JMP .testRL
 .removeUD:
-  LDA arg0                    ; Load the pressed values
+  LDA playerMoveDir           ; Load the pressed values
   AND #REMOVE_UD              ; Mask out the remove bits
-  STA arg0                    ; Store change
+  STA playerMoveDir           ; Store change
 .testRL:
   LDA buttons1                ; Load the pressed values
   AND #MASK_LR                ; Are we pressing LR at once?
@@ -275,140 +278,102 @@ TestPlayerMove:
   BEQ .removeLR
   JMP .testNoMove
 .removeLR:
-  LDA arg0                    ; Load the pressed values
+  LDA playerMoveDir           ; Load the pressed values
   AND #REMOVE_LR              ; Mask out the remove bits
-  STA arg0
+  STA playerMoveDir           ; Store change
 .testNoMove:
-  LDA arg0
-  CMP #0                      ; Nothing pressed
-  BEQ .noPlayerMove
-  JMP .doPlayerMove
-.noPlayerMove:
+  LDA playerMoveDir
+  BNE .doPlayerMove           ; Something is pressed, do the move
   RTS                         ; Done, don't apply movement
 .doPlayerMove:
-  LDX #0
-.loop:
+  LDX #0                      ; Find the direction index that matches
+.loop:                        ;   our input pattern
   CMP playerInput, X
   BEQ .applyY
   INX
   JMP .loop
 .applyY:
-  JSR StoreSpritePosition     ; Store last position in case we need to move back
-  LDA spriteLayoutOriginX
-  STA spriteLastPosX          ; x
-  LDA spriteLayoutOriginY
-  STA spriteLastPosY          ; y
+  TXA
+  STA playerMoveDir           ; Store X index for later
+  ; Store last position so we can revert move if there's a collision
+  LDA playerPosX+1            ; Pixel in player X pos
+  STA spriteLastPosX          ; Store last X
+  LDA playerPosY+1            ; Pixel in player Y pos
+  STA spriteLastPosY          ; Store last Y
   ; Set up velocity args for Y
   LDA playerMoveY, X
-  STA arg0                    ; Velocity Lo
+  STA velLo                   ; Velocity Lo
   LDA playerMoveY+8, X        ; 8 directions
-  STA arg1                    ; Velocity Hi
-  ; Check dodging
+  STA velHi                   ; Velocity Hi
+  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
   LDA playerDodge
-  AND #DODGE_ON
-  CMP #0                      ; Not dodging
-  BEQ .moveY
-  ; 4x velocity
-  LDA arg1                    ; Load current velocity hi
-  ASL A                       ; Multiply current by 4
-  ASL A
-  AND #MOV_MASK               ; Clear off hi bit in case
-  STA arg1                    ; Save cleared scaled velocity
-  LDA playerMoveY+8, X        ; Load original velocity again
-  AND #NEG_SIGN               ; Get negative sign
-  ORA arg1                    ; Combine scaled velocity with sign
-  STA arg1                    ; Save sign
+  AND #DODGE_ON               ; Check dodging
+  BEQ .moveY                  ; Not dodging if 0
+  JSR QuadrupleVelocity       ; Dodging - 4x velocity
 .moveY:
-  LDY #0                      ; Set Y register for sprite Y
-  LDA #playerSub              ; Set pointerSub for player subpixel Y
+  LDA #playerPosY             ; Set pointerSub for player Y
   STA pointerSub
-  JSR SubPixelMove
+  JSR SubPixelMove            ; Do movement
+  LDA playerPosY+1            ; Load new player Y pos
+  STA posY                    ; Store the value in the Y arg
   ; Test Y collision
-  JSR StoreSpritePosition     ; Store where we moved to
-  LDA playerMoveY+8, X        ; Load velocity again to check sign
-  AND #NEG_SIGN
-  CMP #NEG_SIGN               ; We're moving up, check top edge
-  BEQ .runCollisionY
-  LDA spriteLayoutOriginY     ; Collision test on bottom, move Y to test down
-  CLC                         ; by 3 tiles, the height of the player
+  LDA velSign                 ; Check sign from earlier
+  BNE .runCollisionY          ; Moving in negative, check top edge
+  LDA posY                    ; Collision test on bottom, move Y to test down
+  CLC                         ;   by 3 tiles, the height of the player
   ADC #TILES_PX_3
-  STA spriteLayoutOriginY
+  STA posY                    ; Store the change
 .runCollisionY:
-  TXA                         ; Store X (player direction) for use later
-  STA arg7
-  LDA spriteLayoutOriginX     ; Offset in slightly, to make movement smoother
-  CLC                         ; Through gaps
-  ADC #TILE_HALF
-  STA spriteLayoutOriginX
-  STA arg0                    ; Collision X
-  LDA spriteLayoutOriginY
-  STA arg1                    ; Collision Y
+  LDA playerPosX+1            ; Load player X pos
+  CLC
+  ADC #TILE_HALF              ; Offset it slightly to squeeze through gaps
+  STA posX                    ; Store collision X
   LDA #1
-  STA arg2                    ; 2 tiles wide
+  STA tilesW                  ; Testing 1 tile width, left and right edge
   LDA #0
-  STA arg3                    ; single line Y
+  STA tilesH                  ; Testing only a single row H
   JSR TestWorldCollision
-  CMP #0
   BEQ .applyX                 ; No collision, we're good
-  LDY #0                      ; Got a collision, walk Y back
-  LDA spriteLastPosY
-  STA [pointerLo], Y
+  LDA spriteLastPosY          ; We got a collsiion, reset Y
+  STA playerPosY+1
 .applyX:
   ; Set up velocity args for X
-  LDA arg7                    ; Get X we stored earlier back into X
+  LDA playerMoveDir           ; Get X we stored earlier back into X
   TAX
   LDA playerMoveX, X
-  STA arg0                    ; Velocity Lo
+  STA velLo                   ; Velocity Lo
   LDA playerMoveX+8, X        ; 8 directions
-  STA arg1                    ; Velocity Hi
+  STA velHi                   ; Velocity Hi
+  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
   ; Check dodging
   LDA playerDodge
   AND #DODGE_ON
-  CMP #0                      ; Not dodging
-  BEQ .moveX
-  ; 4x velocity
-  LDA arg1                    ; Load current velocity hi
-  ASL A                       ; Multiply current by 4
-  ASL A
-  AND #MOV_MASK               ; Clear off hi bit in case
-  STA arg1                    ; Save cleared scaled velocity
-  LDA playerMoveX+8, X        ; Load original velocity again
-  AND #NEG_SIGN               ; Get negative sign
-  ORA arg1                    ; Combine scaled velocity with sign
-  STA arg1                    ; Save sign
+  BEQ .moveX                  ; Not dodging
+  JSR QuadrupleVelocity       ; Dodging - 4x velocity
 .moveX:
-  LDY #SPRITEX                ; Set Y register for sprite X
-  LDA #playerSub+1            ; Set pointerSub for player subpixel X
+  LDA #playerPosX             ; Set pointerSub for player subpixel X
   STA pointerSub
-  JSR SubPixelMove
-  ; Test Collision X
-  JSR StoreSpritePosition     ; Store where we moved to
-  INC spriteLayoutOriginX     ; Move check to the right by a pixel
-  LDA playerMoveX+8, X        ; Load velocity up again to check sign
-  AND #NEG_SIGN
-  CMP #NEG_SIGN
-  BEQ .runCollisionX
-  LDA spriteLayoutOriginX     ; Collision test on right, move X to test right by
-  CLC                         ; 2 tiles, the width of the player
-  ADC #TILES_PX_2
-  STA spriteLayoutOriginX
-  DEC spriteLayoutOriginX
-  DEC spriteLayoutOriginX     ; 2 pixels to the left, 1 for prev. 1 for padding
+  JSR SubPixelMove            ; Do move
+  LDA playerPosX+1
+  STA posX                    ; Store the value in the X arg
+  ; Test X collision
+  LDA velSign
+  BNE .runCollisionX          ; Moving in negative, check left edge
+  LDA posX
+  CLC                         ; Collision test on right, move X to test right by
+  ADC #TILES_PX_2             ; 2 tiles, the width of the player
+  STA posX
 .runCollisionX:
-  LDA spriteLayoutOriginX
-  STA arg0                    ; Collision X
-  LDA spriteLayoutOriginY
-  STA arg1                    ; Collision Y
+  LDA playerPosY+1            ; Load player Y position
+  STA posY                    ; Store y position
   LDA #0
-  STA arg2                    ; Single line X
+  STA tilesW                  ; Single line X
   LDA #3
-  STA arg3                    ; 3 tiles high
+  STA tilesH                  ; 3 tiles high
   JSR TestWorldCollision
-  CMP #0
   BEQ .done                   ; No collision, we're good
-  LDY #SPRITEX                ; Got a collision, walk X back
-  LDA spriteLastPosX
-  STA [pointerLo], Y
+  LDA spriteLastPosX          ; We got a collision, set X back
+  STA playerPosX+1
 .done:
   RTS
 
@@ -529,7 +494,14 @@ UpdatePlayerSprites:
   STA pointerHi
   LDA #PLAYER                 ; Player low bytes
   STA pointerLo
-  JSR UpdateSpriteLayout
+  ; Apply player pos to player sprite 0
+  LDY #0
+  LDA playerPosY+1
+  STA [pointerLo], Y
+  LDY #SPRITEX
+  LDA playerPosX+1
+  STA [pointerLo], Y
+  JSR UpdateSpriteLayout      ; Update rest of sprites now
   RTS
 
 ; Gets current bullet state, and shifts bullet info over
@@ -874,48 +846,65 @@ UpdateSpriteLayout:
   BNE .loop
   RTS
 
+; In preparation of SubPixelMove, find sign on velocity
+; velHi     - hi velocity
+; Sets velSign to hi velocity sign
+StoreVeloctySign:
+  LDA velHi                   ; Check hi velocity for sign
+  AND #NEG_SIGN
+  STA velSign                 ; Store sign
+  LDA velHi                   ; Clear sign off of velocity
+  AND #MOV_MASK
+  STA velHi
+  LDA velSign                 ; Load sign back up
+  CMP #NEG_SIGN               ; Are we negative?
+  BEQ .negative
+  LDA #0                      ; Positive
+  STA velSign                 ; Store result
+  RTS
+.negative:
+  LDA #1                      ; Negative
+  STA velSign                 ; Store result
+  RTS
+
+; Multiply the stored velocity by 4
+; velHi     - hi velocity
+QuadrupleVelocity:
+  LDA velHi                   ; Load current velocity hi
+  ASL A                       ; Multiply current by 4
+  ASL A
+  STA velHi                   ; Save scaled velocity
+  RTS
+
 ; Move subpixel based on velocity
 ; pointerSub should be set up to subpixel
-; arg0 - lo velocity
-; arg1 - hi velocity. hi bit is sign
-; Local:
-; arg2 - Y register for pointerLo
-; arg3 - Sign
+; velLo     - lo velocity
+; velHi     - hi velocity
+; velSign   - Sign of velocity
 SubPixelMove:
-  STY arg2                    ; Store Y register for pointerLo
-  LDA arg1                    ; Load hi velocity to check sign
-  AND #NEG_SIGN
-  CLC
-  ROL A                       ; Move it to low bit
-  ROL A
-  STA arg3                    ; Store sign for later
-  LDA arg1                    ; Clear sign off high velocity
-  AND #MOV_MASK
-  STA arg1
   LDY #0                      ; Set Y to 0
-  LDA arg3                    ; Now check sign
-  CMP #0
+  LDA velSign                 ; Check sign
   BEQ .add                    ; Positive Movement
   JMP .sub                    ; Negative Movement
 .add:
   LDA [pointerSub], Y         ; Load subpixel
   CLC
-  ADC arg0                    ; Add lo velocity
+  ADC velLo                   ; Add lo velocity
   STA [pointerSub], Y         ; Store subpixel
-  LDY arg2                    ; Restore Y offset
-  LDA [pointerLo], Y          ; Load pixel
-  ADC arg1                    ; Add hi velocity with carry
-  STA [pointerLo], Y          ; Store result
+  LDY #1
+  LDA [pointerSub], Y         ; Load pixel
+  ADC velHi                   ; Add hi velocity with carry
+  STA [pointerSub], Y         ; Store result
   RTS
 .sub:
   LDA [pointerSub], Y         ; Load subpixel
   SEC
-  SBC arg0                    ; Subtract lo speed
+  SBC velLo                   ; Subtract lo speed
   STA [pointerSub], Y         ; Store subpixel
-  LDY arg2                    ; Restore Y offset
-  LDA [pointerLo], Y          ; Load pixel
-  SBC arg1                    ; Subtract hi velocity with carry
-  STA [pointerLo], Y          ; Store pixel
+  LDY #1
+  LDA [pointerSub], Y         ; Load pixel
+  SBC velHi                   ; Subtract hi velocity with carry
+  STA [pointerSub], Y         ; Store pixel
   RTS
 
 ; Test whether the coordinates for Atan2 are equal, uses the same
@@ -1056,45 +1045,49 @@ ManhattanDistance:
   RTS
 
 ; Tests world collision at point
-; arg0 - top left corner x
-; arg1 - top left corner y
-; arg2 - tiles w
-; arg3 - tiles h
-; arg4 - store x tile afte calculating
-; arg5 - store original w
-; returns - A will be 0 if not colliding, 1 if colliding
+; posX            - origin x
+; posY            - origin y
+; tilesW          - tiles w
+; tilesH          - tiles h
+;
+; Local:
+; tilesX          - store x tile after calculating
+; tilesWOriginal  - store original w
+;
+; A will be 0 if not colliding, 1 if colliding
+; X and Y will be trashed
 TestWorldCollision:
   LDA #HIGH(collision)        ; Setup pointer for collison table
   STA pointerColHi
-  LDA arg2                    ; Load tile width
-  STA arg5                    ; Cache tile width in arg5
+  LDA tilesW                  ; Load tile width
+  STA tilesWOriginal          ; Cache tile width in arg5
 .loopY:
   LDA #LOW(collision)
   STA pointerColLo
-  LDA arg1                    ; Y pixel
+  LDA posY                    ; Y pixel
   LSR A                       ; LSR 3 times to be y/8 to get tile
   LSR A
   LSR A                       ; Now we have the tile
   CLC
-  ADC arg3                    ; Add our current tile Y offset
+  ADC tilesH                  ; Add our current tile Y offset
   TAY                         ; Now we have a Y
   LDA pointerColLo            ; Look up the pointer offset for our Y
   CLC
   ADC collisionLookupY, Y
   STA pointerColLo
 .loopX:
-  LDA arg0                    ; X pixel
+  LDA posX                    ; X pixel
   LSR A                       ; LSR 3 times to be x/8 to get tile
   LSR A
   LSR A                       ; Now we have the tile pos
   CLC
-  ADC arg2                    ; Add current tile W
-  STA arg4                    ; Store our tile back in arg4, we're going to find
+  ADC tilesW                  ; Add current tile W
+  STA tilesX                  ; Store our tile back in arg4, we're going to find
   LSR A                       ;   the collision byte with another 3 LSRs to
   LSR A                       ;   be tileX/8
   LSR A
   TAY                         ; Now we have an offset for the actual collision
-  LDA arg4                    ; Load the tile back into A
+  LDA tilesX                  ; Load the tile back into A
   SEC
   SBC collisionLookupX, Y     ; Subtract tiles to be in the right quadrant
   TAX                         ; Number of tiles into this quadrant to count
@@ -1110,18 +1103,18 @@ TestWorldCollision:
   CMP #COLLISIONMASK          ; Do we equal the collision mask? We're colliding
   BEQ .collision
 ; Are we done looping?
-  DEC arg2                    ; Decrease W
-  LDA arg2                    ; Test to see if we finished
+  DEC tilesW                  ; Decrease W
+  LDA tilesW                  ; Test to see if we finished
   CMP #$FF                    ; Looped, done
   BEQ .testFinishY            ; This row is done, test if Y is done
   JMP .loopX                  ; Check next w
 .testFinishY:
-  DEC arg3                    ; Decrease H
-  LDA arg3                    ; Test to see if we finished
+  DEC tilesH                  ; Decrease H
+  LDA tilesH                  ; Test to see if we finished
   CMP #$FF                    ; Looped, done
   BEQ .finish
-  LDA arg5                    ; Reset W
-  STA arg2
+  LDA tilesWOriginal          ; Reset W
+  STA tilesW
   JMP .loopY
 .finish:
   LDA #0
