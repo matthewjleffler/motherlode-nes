@@ -2,7 +2,6 @@
 ; Variables
 
   .rsset $0000                ; put pointers in zero page
-
 arg0                    .rs 1 ; Reusable subroutine arg0
 arg1                    .rs 1 ; " "
 arg2                    .rs 1 ; " "
@@ -20,6 +19,7 @@ pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
 state                   .rs 1 ; state, for bullets or enemies
+bufferUpdateIndex       .rs 1 ; the current buffer offset for this update
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
 buttons1fresh           .rs 1 ; controller 1 buttons fresh
@@ -27,8 +27,6 @@ buttons2fresh           .rs 1 ; controller 2 buttons fresh
 animTick                .rs 1 ; Slows down animation counting
 seed                    .rs 2 ; Stores prng seed
 bulletAnim              .rs 1 ; Bullet anim state
-spriteLayoutOriginY     .rs 1 ; Y of sprite origin
-spriteLayoutOriginX     .rs 1 ; X of sprite origin
 spriteLastPosY          .rs 1 ; Y of sprite last frame
 spriteLastPosX          .rs 1 ; X of sprite last frame
 bulletCount             .rs 1 ; Total number of bullets to render
@@ -47,11 +45,10 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 88776655 44332211
 playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
 
-; TODO move arrays to another page?
-backgroundBuffer  = $0100
+  .rsset $0100                ; Background update buffer here
+backgroundBuffer        .rs 160
 
   .rsset $0400                ; Arrays in upper register here
-
 playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel
 bulletFrame             .rs 4 ; The frames to apply to the current bullet

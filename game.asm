@@ -197,20 +197,35 @@ UpdateBackground:
   LDA $2002                   ; Read PPU status to reset the high/low latch
   LDA #BG_HI
   STA $2006                   ; Store hi byte of bg index
-  LDA #STATUS_LO
+  LDY #0                      ; Count through the buffer
+.loopUpdate:
+  LDX backgroundBuffer, Y     ; Length we'll count through the buffer
+  CPX #0                      ; Are we at the end of the buffer?
+  BNE .startDraw              ; No, draw this buffer
+  RTS                         ; Yes, Done
+.startDraw:
+  INY                         ; Increment buffer
+  LDA backgroundBuffer, Y     ; X index of the status bar to draw at
+  CLC
+  ADC #STATUS_LO              ; Put it within the status bar row
   STA $2006                   ; Store lo byte of status index row
-  LDA #0                      ; TEMP store 0 to test writing bg
-  STA $2007                   ; Write bg tile to PPU
-  STA $2007                   ; Write bg tile to PPU
-  STA $2007
-  RTS
+  INY                         ; Increment buffer
+.loopDraw:
+  LDA backgroundBuffer, Y     ; Load tile to draw from buffer
+  STA $2007                   ; Write tile to PPU
+  INY                         ; Increment buffer
+  DEX                         ; Decrement length
+  CPX #0                      ; Done with this buffer?
+  BEQ .loopUpdate             ; Yes, draw next buffer
+  JMP .loopDraw               ; No, continue this draw
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Game Loop
 
 GameLoop:
-  LDA #0                      ; Clear background update buffer
+  LDA #0                      ; Clear background update buffer, and count
   STA backgroundBuffer
+  STA bufferUpdateIndex
   INC animTick                ; Increment animation tick
   JSR ReadControllers
   JSR TestPlayerMove
@@ -266,6 +281,12 @@ TestPlayerMove:
   BEQ .startDodgeCooldown
   LDA #0                      ; Cooldown ran out
   STA playerDodge             ; Clear dodge
+  LDA #1                      ; Update the status bar to show dodge is ready
+  STA len                     ; 1 tile to update
+  STA startX                  ; X index is 1
+  JSR StartBackgroundUpdate
+  LDA #$63                    ; "on" tile
+  JSR AddBackgroundByte
   JMP .beginMove
 .startDodgeCooldown:
   LDA #DODGE_COOLDOWN
@@ -275,6 +296,12 @@ TestPlayerMove:
   LDA buttons1
   AND #BUTTONB                ; Are we pressing B?
   BEQ .beginMove              ; No - just move
+  LDA #1                      ; Update the status bar to show dodge is not ready
+  STA len                     ; 1 tile to update
+  STA startX                  ; X index is 1
+  JSR StartBackgroundUpdate
+  LDA #$62                    ; "off" tile
+  JSR AddBackgroundByte
   LDA #DODGE_ON               ; Yes - set dodging bit
   CLC
   ADC #DODGE_TIME             ; Add the dodge timer
@@ -1149,4 +1176,23 @@ RNG:
   STA seed+0
   RTS
 
+; Sets up a background update into the buffer
+; Assumes we're drawing into the status bar
+;
+; Args:
+;  len                        - How many bytes to copy
+;  startX                     - The X tile to start the draw into
+StartBackgroundUpdate:
+  LDA len
+  JSR AddBackgroundByte
+  LDA startX
+  JSR AddBackgroundByte
+  RTS
 
+AddBackgroundByte:
+  LDX bufferUpdateIndex
+  STA backgroundBuffer, X
+  INC bufferUpdateIndex
+  LDA #0
+  STA backgroundBuffer+1, X   ; Set the next byte to 0, to end buffer
+  RTS
