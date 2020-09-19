@@ -189,15 +189,12 @@ NMI:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Background buffer
+
 UpdateBackground:
-  LDA backgroundBuffer
-  BNE .setupBuffer
-  RTS
-.setupBuffer:
-  LDA $2002                   ; Read PPU status to reset the high/low latch
-  LDA #BG_HI
-  STA $2006                   ; Store hi byte of bg index
   LDY #0                      ; Count through the buffer
+  LDA backgroundBuffer
+  BNE .loopUpdate
+  RTS
 .loopUpdate:
   LDX backgroundBuffer, Y     ; Length we'll count through the buffer
   CPX #0                      ; Are we at the end of the buffer?
@@ -205,6 +202,9 @@ UpdateBackground:
   RTS                         ; Yes, Done
 .startDraw:
   INY                         ; Increment buffer
+  LDA $2002                   ; Read PPU status to reset the high/low latch
+  LDA #BG_HI
+  STA $2006                   ; Store hi byte of bg index
   LDA backgroundBuffer, Y     ; X index of the status bar to draw at
   CLC
   ADC #STATUS_LO              ; Put it within the status bar row
@@ -223,16 +223,21 @@ UpdateBackground:
 ; Game Loop
 
 GameLoop:
+  ; Clear and modify values
   LDA #0                      ; Clear background update buffer, and count
   STA backgroundBuffer
   STA bufferUpdateIndex
+  STA scoreChanged
   INC animTick                ; Increment animation tick
+  ; Game loop
   JSR ReadControllers
   JSR TestPlayerMove
   JSR UpdatePlayerSprites
+  JSR TestPlayerSpecial
   JSR TestShootBullet
   JSR UpdateBullets
   JSR UpdateEnemies
+  JSR DrawScoreUpdate
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -285,7 +290,7 @@ TestPlayerMove:
   STA len                     ; 1 tile to update
   STA startX                  ; X index is 1
   JSR StartBackgroundUpdate
-  LDA #$63                    ; "on" tile
+  LDA #STATUS_BUTT_ON         ; "on" tile
   JSR AddBackgroundByte
   JMP .beginMove
 .startDodgeCooldown:
@@ -293,14 +298,15 @@ TestPlayerMove:
   STA playerDodge
   JMP .beginMove
 .testDodge:
-  LDA buttons1
+  LDA buttons1fresh
   AND #BUTTONB                ; Are we pressing B?
   BEQ .beginMove              ; No - just move
+  ; Start dodge
   LDA #1                      ; Update the status bar to show dodge is not ready
   STA len                     ; 1 tile to update
   STA startX                  ; X index is 1
   JSR StartBackgroundUpdate
-  LDA #$62                    ; "off" tile
+  LDA #STATUS_BUTT_OFF        ; "off" tile
   JSR AddBackgroundByte
   LDA #DODGE_ON               ; Yes - set dodging bit
   CLC
@@ -516,6 +522,20 @@ UpdatePlayerSprites:
   JSR UpdateSpriteLayout      ; Update sprites now
   RTS
 
+TestPlayerSpecial:
+  LDA buttons1fresh
+  AND #BUTTONA
+  CMP #BUTTONA
+  BEQ .doPlayerSpecial
+  RTS
+.doPlayerSpecial:
+  ; INC debug
+  ; LDA debug
+  ; JSR DrawDebug
+  ; LDX #6
+  ; JSR AddScore
+  RTS
+
 ; Set pointer for bullet sprite
 SetPointerForBullet:
   LDX bulletCount
@@ -657,6 +677,8 @@ DoBulletMove:
   JMP .updateLayout           ; No collision
 .hitEnemy:
   ; TODO apply damage to enemy in enemyCount
+  LDX #1
+  JSR AddScore
 .collision:
   JMP HideBullet              ; We left the screen, bullet is dead
 
@@ -808,6 +830,52 @@ UpdateEnemies:
   LDA enemyCount
   CMP #ENEMYCOUNT
   BNE .loop
+  RTS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Scoring
+
+; Requires X to be set up for the place to increment
+AddScore:
+  LDA #1
+  STA scoreChanged            ; Mark that we've changed score this frame
+  CPX #SCOREPLACES            ; Did we overflow the total loop? We're done
+  BNE .doAdd                  ; No, continue
+.fillScore:                   ; Yes, mark score full
+  DEX
+  LDA #9
+  STA score, X                ; Put 9 in this place
+  CPX #0                      ; Did we finish the last place?
+  BNE .fillScore              ; No, continue filling
+  RTS                         ; Yes, stop updating
+.doAdd:
+  INC score, X
+  LDA score, X
+  CMP #$A                     ; Do we have 10 in this place?
+  BEQ .addPlace               ; Yes, increment place
+  RTS                         ; No, our add is done
+.addPlace:                    ; We overflowed, carry 1 up a place
+  LDA #0                      ; Set zero in this place
+  STA score, X
+  INX                         ; Increment place
+  JMP AddScore                ; Add one to new place
+
+DrawScoreUpdate:
+  LDA scoreChanged            ; Check if score changed
+  BNE .doUpdate               ; Yes, draw change
+  RTS                         ; No, nothing to draw
+.doUpdate:
+  LDX #SCOREPLACES            ; We're drawing all score places
+  STX len
+  LDA #SCORE_TILE             ; We start drawing at score place
+  STA startX
+  JSR StartBackgroundUpdate
+.drawScoreLoop:
+  DEX                         ; Decrement X
+  LDA score, X                ; Draw score place into buffer, reversing order
+  JSR AddBackgroundByte
+  CPX #0                      ; Did we draw the last place?
+  BNE .drawScoreLoop          ; No, do next place
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1182,6 +1250,7 @@ RNG:
 ; Args:
 ;  len                        - How many bytes to copy
 ;  startX                     - The X tile to start the draw into
+;  oldX                       - Preserve X loop when adding to buffer
 StartBackgroundUpdate:
   LDA len
   JSR AddBackgroundByte
@@ -1189,10 +1258,36 @@ StartBackgroundUpdate:
   JSR AddBackgroundByte
   RTS
 
+; Adds a byte to the background update, make sure len
+; has been set in StartBackgroundUpdate first
 AddBackgroundByte:
+  STX oldX                    ; Store X in oldX
   LDX bufferUpdateIndex
   STA backgroundBuffer, X
   INC bufferUpdateIndex
   LDA #0
   STA backgroundBuffer+1, X   ; Set the next byte to 0, to end buffer
+  LDX oldX                    ; Restore old X
+  RTS
+
+; Sets whatever is in A to the debug value, and draws it into the score
+;
+; Args:
+;  A                          -> debug
+DrawDebug:
+  STA debug                   ; Store debug value - stop score from rendering
+  LDA #2
+  STA len                     ; 2 characters going to end of score
+  LDA #DEBUG_TILE
+  STA startX                  ; Tile X beginning of score
+  JSR StartBackgroundUpdate
+  LDA debug                   ; Load debug
+  LSR A                       ; Shift bottom 4 bits off
+  LSR A
+  LSR A
+  LSR A
+  JSR AddBackgroundByte       ; Put high half of debug in first slot
+  LDA debug
+  AND #LOW_MASK
+  JSR AddBackgroundByte       ; Put low half of debug in second slot
   RTS

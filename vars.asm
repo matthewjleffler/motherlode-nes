@@ -19,6 +19,8 @@ pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
 state                   .rs 1 ; state, for bullets or enemies
+debug                   .rs 1 ; for debug rendering - when set, draws in score
+scoreChanged            .rs 1 ; Whether or not score changed this frame
 bufferUpdateIndex       .rs 1 ; the current buffer offset for this update
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
@@ -49,6 +51,7 @@ playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
 backgroundBuffer        .rs 160
 
   .rsset $0400                ; Arrays in upper register here
+score                   .rs 8 ; 8 places for score counting
 playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel
 bulletFrame             .rs 4 ; The frames to apply to the current bullet
@@ -73,6 +76,9 @@ TILES_PX_3        = 3 * TILE_WIDTH ; 3 tiles high in pixels
 TILES_PX_2        = 2 * TILE_WIDTH ; 2 tiles high in pixels
 BG_HI             = $20       ; hi pointer to background table addresses
 STATUS_LO         = $60       ; lo pointer index of status bar bg row
+DEBUG_TILE        = 19
+SCORE_TILE        = 23
+LOW_MASK          = %00001111
 
 ; Controllers
 CONTROLHI         = $40
@@ -98,6 +104,7 @@ BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
 HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
 ENEMYCOUNT        = 6         ; Max number of enemies
+SCOREPLACES       = 8         ; Score places
 PLAYER_BULLET_RAD = 10        ; Distance player bullets can hit at
 PLAYER_SPAWN_X    = $80
 PLAYER_SPAWN_Y    = $80
@@ -130,6 +137,8 @@ BULLFRAME0        = $06
 BULLFRAME1        = $07
 BULLFRAME2        = $08
 BULLFRAME3        = $09
+STATUS_BUTT_OFF   = $62
+STATUS_BUTT_ON    = $63
 
 ; Bullet States
 BULL_OFF          = $00
@@ -147,7 +156,7 @@ posY2             = arg3
 
 ; Atan2 / Math
 octant            = arg4
-angle             = arg4 ; Reuse arg4 after finishing with octant
+angle             = arg4      ; Reuse arg4 after finishing with octant
 sum               = arg4
 distance          = arg9
 
@@ -168,3 +177,4 @@ velSign           = arg2
 ; Background buffer upadte
 len               = arg0
 startX            = arg1
+oldX              = arg2
