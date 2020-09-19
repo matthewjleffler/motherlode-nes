@@ -139,6 +139,8 @@ BULLFRAME2        = $08
 BULLFRAME3        = $09
 STATUS_BUTT_OFF   = $62
 STATUS_BUTT_ON    = $63
+STATUS_HEART_OFF  = $60
+STATUS_HEART_ON   = $61
 
 ; Bullet States
 BULL_OFF          = $00
