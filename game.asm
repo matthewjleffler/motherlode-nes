@@ -125,8 +125,8 @@ AssignEnemyPositions:
   BNE .loop
 
 LoadBackground:
-  LDA $2002                   ; read PPU status to reset the high/low latch
-  LDA #$20
+  LDA $2002                   ; Read PPU status to reset the high/low latch
+  LDA #BG_HI
   STA $2006                   ; write the high byte of $2000 address
   LDA #$00
   STA $2006                   ; write the low byte of $2000 address
@@ -176,6 +176,8 @@ Forever:
 ; NMI frame interrupt
 
 NMI:
+  JSR UpdateBackground
+  ; Copy sprites through DMA
   LDA #$00
   STA $2003                   ; set the low byte (00) of the RAM address
   LDA #$02
@@ -186,9 +188,29 @@ NMI:
   RTI                         ; Return from interrupt
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Background buffer
+UpdateBackground:
+  LDA backgroundBuffer
+  BNE .setupBuffer
+  RTS
+.setupBuffer:
+  LDA $2002                   ; Read PPU status to reset the high/low latch
+  LDA #BG_HI
+  STA $2006                   ; Store hi byte of bg index
+  LDA #STATUS_LO
+  STA $2006                   ; Store lo byte of status index row
+  LDA #0                      ; TEMP store 0 to test writing bg
+  STA $2007                   ; Write bg tile to PPU
+  STA $2007                   ; Write bg tile to PPU
+  STA $2007
+  RTS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Game Loop
 
 GameLoop:
+  LDA #0                      ; Clear background update buffer
+  STA backgroundBuffer
   INC animTick                ; Increment animation tick
   JSR ReadControllers
   JSR TestPlayerMove
@@ -311,8 +333,10 @@ TestPlayerMove:
   BEQ .moveY                  ; Not dodging if 0
   JSR QuadrupleVelocity       ; Dodging - 4x velocity
 .moveY:
-  LDA #playerPosY             ; Set pointerSub for player Y
-  STA pointerSub
+  LDA #HIGH(playerPosY)       ; Set pointerSub for player Y
+  STA pointerSubHi
+  LDA #LOW(playerPosY)
+  STA pointerSubLo
   JSR SubPixelMove            ; Do movement
   LDA playerPosY+1            ; Load new player Y pos
   SEC
@@ -355,8 +379,10 @@ TestPlayerMove:
   BEQ .moveX                  ; Not dodging
   JSR QuadrupleVelocity       ; Dodging - 4x velocity
 .moveX:
-  LDA #playerPosX             ; Set pointerSub for player subpixel X
-  STA pointerSub
+  LDA #HIGH(playerPosX)       ; Set pointerSub for player subpixel X
+  STA pointerSubHi
+  LDA #LOW(playerPosX)
+  STA pointerSubLo
   JSR SubPixelMove            ; Do move
   LDA playerPosX+1
   SEC
@@ -556,10 +582,12 @@ DoBulletMove:
   LDA playerBulletMoveY+32, Y ; Velocity Hi
   STA velHi
   JSR StoreVeloctySign
-  LDA #playerBulletPosY       ; Set up pointer for bullet y pos
+  LDA #HIGH(playerBulletPosY) ; Set up pointer for bullet y pos
+  STA pointerSubHi
+  LDA #LOW(playerBulletPosY)
   CLC
   ADC positionOffset, X       ; Move the pointer forward to the right index
-  STA pointerSub
+  STA pointerSubLo
   JSR SubPixelMove            ; Move the Y position
   ; STA posY                    ; Store new position for collision
   ; Move pixel X
@@ -569,10 +597,12 @@ DoBulletMove:
   LDA playerBulletMoveX+32, Y ; Velocity Hi
   STA velHi
   JSR StoreVeloctySign
-  LDA #playerBulletPosX       ; Set up pointer for bullet x pos
+  LDA #HIGH(playerBulletPosX) ; Set up pointer for bullet x pos
+  STA pointerSubHi
+  LDA #LOW(playerBulletPosX)
   CLC
   ADC positionOffset, X       ; Move the pointer forward to the right index
-  STA pointerSub
+  STA pointerSubLo
   JSR SubPixelMove            ; Move the X position
   ; STA posX                    ; Store new position for collision
   ; Save the final movement positions for searches
@@ -849,7 +879,7 @@ QuadrupleVelocity:
   RTS
 
 ; Move subpixel based on velocity
-; pointerSub should be set up to subpixel
+; pointerSubLo should be set up to subpixel
 ;
 ; Args:
 ;   velLo                     - lo velocity
@@ -863,24 +893,24 @@ SubPixelMove:
   BEQ .add                    ; Positive Movement
   JMP .sub                    ; Negative Movement
 .add:
-  LDA [pointerSub], Y         ; Load subpixel
+  LDA [pointerSubLo], Y       ; Load subpixel
   CLC
   ADC velLo                   ; Add lo velocity
-  STA [pointerSub], Y         ; Store subpixel
+  STA [pointerSubLo], Y       ; Store subpixel
   LDY #1
-  LDA [pointerSub], Y         ; Load pixel
+  LDA [pointerSubLo], Y       ; Load pixel
   ADC velHi                   ; Add hi velocity with carry
-  STA [pointerSub], Y         ; Store result
+  STA [pointerSubLo], Y       ; Store result
   RTS
 .sub:
-  LDA [pointerSub], Y         ; Load subpixel
+  LDA [pointerSubLo], Y       ; Load subpixel
   SEC
   SBC velLo                   ; Subtract lo speed
-  STA [pointerSub], Y         ; Store subpixel
+  STA [pointerSubLo], Y       ; Store subpixel
   LDY #1
-  LDA [pointerSub], Y         ; Load pixel
+  LDA [pointerSubLo], Y       ; Load pixel
   SBC velHi                   ; Subtract hi velocity with carry
-  STA [pointerSub], Y         ; Store pixel
+  STA [pointerSubLo], Y       ; Store pixel
   RTS
 
 ; from https://codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle
@@ -1118,3 +1148,5 @@ RNG:
   EOR seed+0
   STA seed+0
   RTS
+
+

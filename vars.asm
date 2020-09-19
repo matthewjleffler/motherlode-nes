@@ -15,7 +15,7 @@ arg8                    .rs 1 ; " "
 arg9                    .rs 1 ; " "
 pointerLo               .rs 1 ; pointer variables are declared in RAM
 pointerHi               .rs 1 ; low byte first, high byte immediately after
-pointerSub              .rs 1 ; pointer to subpixel
+pointerSubLo            .rs 1 ; pointer to subpixel
 pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
@@ -31,8 +31,6 @@ spriteLayoutOriginY     .rs 1 ; Y of sprite origin
 spriteLayoutOriginX     .rs 1 ; X of sprite origin
 spriteLastPosY          .rs 1 ; Y of sprite last frame
 spriteLastPosX          .rs 1 ; X of sprite last frame
-bulletFrame             .rs 4 ; The frames to apply to the current bullet
-bulletAttr              .rs 4 ; The attributes to apply to the current bullet
 bulletCount             .rs 1 ; Total number of bullets to render
 enemyCount              .rs 1 ; Total number of enemies alive now
 playerBulletStates      .rs 1 ; On/off states for 4 player bullets
@@ -47,12 +45,20 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 10 - ??
                               ; 11 - ??
                               ; 88776655 44332211
+playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
+
+; TODO move arrays to another page?
+backgroundBuffer  = $0100
+
+  .rsset $0400                ; Arrays in upper register here
+
 playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel
-playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
+bulletFrame             .rs 4 ; The frames to apply to the current bullet
+bulletAttr              .rs 4 ; The attributes to apply to the current bullet
+playerBulletVel         .rs 4 ; 4 (indexes)
 playerBulletPosX        .rs 2 * 4 ; Lo sub, hi pixel * 4
 playerBulletPosY        .rs 2 * 4 ; Lo sub, hi pixel * 4
-playerBulletVel         .rs 4 ; 4 (indexes)
 enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 
@@ -68,6 +74,8 @@ SPRITEATT         = $02
 SPRITEX           = $03
 TILES_PX_3        = 3 * TILE_WIDTH ; 3 tiles high in pixels
 TILES_PX_2        = 2 * TILE_WIDTH ; 2 tiles high in pixels
+BG_HI             = $20       ; hi pointer to background table addresses
+STATUS_LO         = $60       ; lo pointer index of status bar bg row
 
 ; Controllers
 CONTROLHI         = $40
@@ -132,7 +140,7 @@ BULL_MOV          = $01
 BULL_EXP          = $02
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments
+; Argument constants
 
 ; Positional
 posX              = arg0
@@ -159,3 +167,7 @@ playerMoveDir     = arg9
 velLo             = arg0
 velHi             = arg1
 velSign           = arg2
+
+; Background buffer upadte
+len               = arg0
+startX            = arg1
