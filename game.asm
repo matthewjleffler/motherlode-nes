@@ -113,20 +113,13 @@ AssignEnemySprites:
   BNE .loopX
 
 AssignEnemyPositions:
-  LDA #ENEMY0
-  STA pointerLo
   LDX #0
 .loop:
-  LDY #0
-  LDA enemySpawnY, X
-  STA [pointerLo], Y
-  LDY #SPRITEX
-  LDA enemySpawnX, X
-  STA [pointerLo], Y
-  LDA pointerLo
-  CLC
-  ADC #ENEMYSIZE
-  STA pointerLo
+  LDY positionOffset, X
+  LDA enemySpawnY, X          ; Get the spawn Y at index X
+  STA enemyPosY+1, Y          ; Store the enemy Y position
+  LDA enemySpawnX, X          ; Get the spawn X at index X
+  STA enemyPosX+1, Y          ; Store the enemy X position
   INX
   CPX #ENEMYCOUNT
   BNE .loop
@@ -160,12 +153,19 @@ LoadBackground:
   BNE .loopX                  ; run the outside loop 256 times before continuing
   ; End outer loop
 
-; Initialize Variables
+InitializeVariables:
   LDA #PLAYER_SPAWN_X         ; Set up player spawn position
   STA playerPosX+1
   LDA #PLAYER_SPAWN_Y
   STA playerPosY+1
   ; TODO set up game state - title etc
+  LDX #0
+.loopBullets:
+  LDA #$FF
+  STA playerBulletPosY+1      ; Set bullet hidden offscreen
+  INX
+  CPX #BULLETCOUNT
+  BNE .loopBullets
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 
@@ -193,9 +193,9 @@ GameLoop:
   JSR ReadControllers
   JSR TestPlayerMove
   JSR UpdatePlayerSprites
-  ; JSR TestShootBullet
-  ; JSR UpdateBullets
-  ; JSR UpdateEnemies
+  JSR TestShootBullet
+  JSR UpdateBullets
+  JSR UpdateEnemies
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -386,94 +386,63 @@ TestPlayerMove:
   RTS
 
 TestShootBullet:
-  LDA #BULLETSHOOTMASK
-  AND animTick                ; Every 7 frames?
-  BEQ .shootBullet
-  RTS
-.shootBullet:
-  LDA #SPRITEHI               ; Setup pointers for player
-  STA pointerHi
-  LDA #PLAYER
-  STA pointerLo
-  LDY #0
-  LDA [pointerLo], Y          ; Load player Y
-  STA spriteLayoutOriginY     ; Store player Y
-  STA spriteLastPosY
-  CLC
-  ADC #TILE_WIDTH             ; Center of bullet
-  STA arg2                    ; Store center in arg2 for atan2
-  LDY #SPRITEX                ; Load player X
-  LDA [pointerLo], Y
-  STA spriteLayoutOriginX     ; Store player X
-  STA spriteLastPosX
-  CLC
-  ADC #TILE_WIDTH             ; Center of bullet
-  STA arg0                    ; Store center in arg0 for atan2
-  JSR FindClosestEnemyIndex
-  TAX                         ; Got index, put in X
+  ; LDA #BULLETSHOOTMASK
+  ; AND animTick                ; Every 7 frames?
+  LDA #BUTTONA
+  AND buttons1fresh
+  CMP #BUTTONA
+  BEQ .testEnemyNear
+  RTS                         ; Not the right tick
+.testEnemyNear:
+  LDA playerPosY+1            ; Load player Y
+  STA posY                    ; Store player Y for atan2 and find enemy
+  LDA playerPosX+1            ; Load player X
+  STA posX                    ; Store player X for atan2 and find enemy
+  ; JSR FindClosestEnemyIndex : TODO store this index
+  LDX #0                      ; Start X count at 0
+  LDY #0                      ; Start Y count at 0
+  LDA #0                      ; TEMP enemy index in 0
+  ; STA enemyIndex              ; TEMP enemy index in 0
   CMP #$FF                    ; No enemy to shoot at? Don't shoot
-  BNE .shootAtEnemy
+  BNE .findFreeBullet
   RTS
-.shootAtEnemy:
-  LDA #ENEMY0                 ; Setup pointers for enemy
-  STA pointerLo
-  LDA enemyOffset, X          ; Get offset from LUT
-  CLC
-  ADC pointerLo               ; Offset pointer to the correct enemy
-  STA pointerLo
-  LDY #0
-  LDA [pointerLo], Y          ; Load enemy Y
-  CLC
-  ADC #TILE_WIDTH             ; Add half tile for enemy center
-  STA arg3                    ; Store enemy center Y in arg3 (y2)
-  LDY #SPRITEX
-  LDA [pointerLo], Y          ; Load enemy X
-  CLC
-  ADC #TILE_WIDTH             ; Add half tile for enemy center
-  STA arg1                    ; Store enemy X in arg1 (x2)
-  JSR Atan2                   ; Get degrees between player and enemy
-  LSR A                       ; LSR 4 times to get 32 degrees
-  LSR A
-  LSR A
-  STA arg1                    ; Store index in arg1, don't need enemy pos
-  ; Now loop to find a free bullet to shoot
-  LDX #0                      ; Bullet count
-  LDY #0                      ; Flag for whether or not we shot, and pointer
-  STY bulletCount             ; Count pointers for current bullet
 .findFreeBullet:
-  JSR GetBulletState
-  CMP #BULL_OFF               ; If the bullet is off? Turn it on
-  BNE .nextBullet
-  ; Found a free bullet
-  CPY #$00
-  BNE .nextBullet             ; Have we already shot a bullet?
+  JSR GetBulletState          ; Need to loop through all bullets when checking state
+  CMP #BULL_OFF               ; If the bullet is off? It's a candidate
+  BNE .nextBullet             ; Not off, skip
+  CPY #0                      ; Have we already shot a bullet?
+  BNE .nextBullet             ; Aleady shot, skip
+  ; Found free bullet, activate it, set it's position, find it's
+  ; velocity index
   LDA #BULL_MOV               ; Set the current bullet state to moving
-  STA temp
+  STA state
   JSR SetBulletState
-  ; Set bullet position
-  LDA #PBULLET0               ; Point at selected bullet
-  CLC
-  ADC bulletCount
-  STA pointerLo
-  LDY #$00
-  LDA spriteLastPosY          ; Player Y stored earlier
-  STA [pointerLo], Y          ; Apply player Y
-  LDY #SPRITEX
-  LDA spriteLastPosX          ; Player X stored earlier
-  STA [pointerLo], Y          ; Apply player X
-  ; Set bullet velocity
-  LDA arg1                    ; Previously saved velocity
-  STA playerBulletVel, X
-  ; Clear bullet subpixel
-  LDA #0                      ; TODO player subpixel?
-  STA playerBulletSub, X
-  STA playerBulletSub+1, X
-  LDY #$01                    ; Mark that we've already shot
+
+  ; Set bullet position to the current player position
+  LDY positionOffset, X       ; Get position byte offset for bullet index
+  LDA #0                      ; Clear bullet subpixels
+  STA playerBulletPosX, Y
+  STA playerBulletPosY, Y
+  LDA playerPosX+1            ; Load position X from player
+  STA playerBulletPosX+1, Y   ; Set bullet pixel X
+  LDA playerPosY+1            ; Load position Y from player
+  STA playerBulletPosY+1, Y   ; Set bullet pixel Y
+
+  ; TODO get position of enemy index stored earlier
+  ; LDA #100                     ; TEMP shoot at a fixed pos
+  ; STA posX2
+  ; STA posY2
+
+  ; STX bulletCount             ; Store current bullet index while Atan2 happens
+  ; JSR Atan2                   ; Get degrees between player and enemy
+  ; LSR A                       ; LSR 4 times to get 32 degrees
+  ; LSR A
+  ; LSR A
+  ; LDX bulletCount             ; Put bullet index back in X after Atan2
+  LDA #0                      ; TEMP zero index
+  STA playerBulletVel, X      ; Store the velocity index for the current bullet
+  LDY #1                      ; Mark that we've already shot
 .nextBullet:
-  LDA bulletCount
-  CLC
-  ADC #$10                    ; Move to next bullet pointer
-  STA bulletCount
   INX                         ; Increment counter
   CPX #BULLETCOUNT
   BNE .findFreeBullet         ; If not 0, check next bullet, or cycle the state
@@ -497,45 +466,52 @@ MovePointerTwoRows:
   RTS
 
 UpdatePlayerSprites:
-  LDX #$03                    ; Player is 3 tiles high
   LDA #SPRITEHI               ; Sprite hi bites
   STA pointerHi
   LDA #PLAYER                 ; Player low bytes
   STA pointerLo
-  ; Apply player pos to player sprite 0, offset by player w/h
-  LDY #0
-  LDA playerPosY+1
-  SEC
-  SBC #TILE_WIDTH             ; Offset up by one tile
-  STA [pointerLo], Y
-  LDY #SPRITEX
   LDA playerPosX+1
   SEC
-  SBC #TILE_WIDTH             ; Offset left by one tile
-  STA [pointerLo], Y
-  JSR UpdateSpriteLayout      ; Update rest of sprites now
+  SBC #TILE_WIDTH             ; Offset X left by one tile to left edge
+  STA posX                    ; Store X position
+  LDA playerPosY+1
+  SEC
+  SBC #TILE_WIDTH             ; Offset Y up by one tile to top edge
+  STA posY                    ; Store Y position
+  LDA #03                     ; Player is 3 tiles high
+  STA tilesH                  ; Store in sprite height
+  JSR UpdateSpriteLayout      ; Update sprites now
+  RTS
+
+; Set pointer for bullet sprite
+SetPointerForBullet:
+  LDX bulletCount
+  LDA spriteOffset, X         ; Get sprite offset for index
+  CLC
+  ADC #PBULLET0
+  STA pointerLo               ; Store sprite at index in pointerLo
   RTS
 
 ; Gets current bullet state, and shifts bullet info over
-; Stores resulting state in temp
+; Stores resulting state in state
 GetBulletState:
   LDA playerBulletStates      ; Get current state in A
   AND #STATEMASK
+  STA state                   ; Store result in temp
   LSR playerBulletStates      ; Move state off playerBulletStates
   LSR playerBulletStates      ; Last two bits are 0
-  STA temp                    ; Store result in temp
   JSR SetBulletState          ; Store current state back, in case of no change
-  LDA temp
+  LDA state
   RTS
 
 ; Sets current bullet state in high bits of playerBulletStates
-; Expects the new state to already be in the low bits of temp
-; Can be assigned multiple times, temp is preserved between calls
+; Expects the new state to already be in the low bits of state
+; Can be assigned multiple times, state is preserved between calls
 SetBulletState:
   LDA playerBulletStates      ; Make sure high bits are clear
   AND #HICLEAR
   STA playerBulletStates
-  LDA temp
+  LDA state
   CLC
   ROR A                       ; 000000AB -> B
   ROR A                       ; B000000A -> A
@@ -549,143 +525,128 @@ SetBulletState:
 ; Expects pointerLo to be pointing at sprite0 y of current bullet
 HideBullet:
   LDA #BULL_OFF               ; Set state to off
-  STA temp
+  STA state
   JSR SetBulletState
-  LDX #02                     ; Sprite is 2 tiles high
+  JSR SetPointerForBullet
+  LDA #2
+  STA tilesH
   JSR HideSpriteLayout        ; Hide sprite, pointer is advanced
-  JMP IncrementBulletLoop     ; Continue loop, pointer updated by hide
+  JMP IncrementBulletLoop     ; Continue loop
 
+; bulletCount counts the current bullet index through this update
 UpdateBullets:
-  LDA #SPRITEHI               ; point the hi pointer at SPRITEHI for bullets
+  LDA #SPRITEHI               ; Set up high sprite pointer for later
   STA pointerHi
-  LDA #PBULLET0               ; point the lo pointer at PBULLET0
-  STA pointerLo
-  LDX #$00                    ; Zero out bullet count
-  STX bulletCount
+  LDA #0                      ; Zero out bullet count
+  STA bulletCount             ; Store bullet count
   LDA #STATEMASK              ; Are we on the anim tick? Increment the
-  AND animTick                ; bullet animation counter if so
+  AND animTick                ;   bullet animation counter if so
   BEQ .countAnim
   JMP UpdateBulletLoop
 .countAnim:
   INC bulletAnim              ; Increment bullet anim counter
 UpdateBulletLoop:
-  JSR GetBulletState          ; Temp now stores bullet state
+  JSR GetBulletState          ; state now stores bullet state
   CMP #BULL_EXP               ; Are we exploding?
   BEQ .bulletExplode
   CMP #BULL_MOV               ; Are we moving?
   BEQ .bulletMove
-  JMP .incrementPointer       ; Other bullet states do nothing
+  JMP IncrementBulletLoop     ; Other bullet states do nothing
 .bulletExplode:
   JMP DoBulletExplode
 .bulletMove:
   JMP DoBulletMove
-.incrementPointer:            ; We did nothing to the bullet, move the pointer
-  JSR MovePointerTwoRows      ; To the next bullet
 IncrementBulletLoop:          ; Bullet update done
-  LDX bulletCount
-  INX
-  STX bulletCount
-  CPX #BULLETCOUNT            ; Are we done with the loop?
+  INC bulletCount
+  LDA bulletCount
+  CMP #BULLETCOUNT            ; Are we done with the loop?
   BNE UpdateBulletLoop
   RTS
 
 ; TODO implement
 DoBulletExplode:
-  JSR MovePointerTwoRows
   JMP IncrementBulletLoop
 
 DoBulletMove:
-  LDA pointerLo               ; Store the current bullet pointer in bulletFrame
-  STA bulletFrame             ; since it's not used until later when we anim.
-  LDX bulletCount             ; Get the velocity index of this bullet
-  LDA playerBulletVel, X
-  TAX
-  ; Set up velocity args for Y
-  LDA playerBulletMoveY, X    ; Velocity Lo
-  STA arg0
-  LDA playerBulletMoveY+32, X ; Velocity Hi
-  STA arg1
-  LDY #0                      ; Set Y register for sprite Y
-  LDA #playerBulletSub
+  ; Move pixel Y
+  LDX bulletCount
+  LDY playerBulletVel, X      ; Load bullet velocity index in Y
+  LDA playerBulletMoveY, Y    ; Velocity Lo
+  STA velLo
+  LDA playerBulletMoveY+32, Y ; Velocity Hi
+  STA velHi
+  JSR StoreVeloctySign
+  LDA #playerBulletPosY       ; Set up pointer for bullet y pos
   CLC
-  ADC bulletCount
+  ADC positionOffset, X       ; Move the pointer forward to the right index
   STA pointerSub
-  JSR SubPixelMove
-  LDA [pointerLo], Y
-  STA spriteLayoutOriginY
-  ; Set up velocity args for X
-  LDA playerBulletMoveX, X    ; Velocity Lo
-  STA arg0
-  LDA playerBulletMoveX+32, X ; Velocity Hi
-  STA arg1
-  LDY #SPRITEX
-  LDA #playerBulletSub
+  JSR SubPixelMove            ; Move the Y position
+  ; Move pixel X
+  LDY playerBulletVel, X      ; Load bullet velocity index in Y
+  LDA playerBulletMoveX, Y    ; Velocity Lo
+  STA velLo
+  LDA playerBulletMoveX+32, Y ; Velocity Hi
+  STA velHi
+  JSR StoreVeloctySign
+  LDA #playerBulletPosX       ; Set up pointer for bullet x pos
   CLC
-  ADC bulletCount
+  ADC positionOffset, X       ; Move the pointer forward to the right index
   STA pointerSub
-  JSR SubPixelMove
-  JSR StoreSpritePosition
-  LDA spriteLayoutOriginX
-  CLC
-  ADC #TILE_WIDTH
-  STA arg0                    ; Collision detection checking middle of bullet
-  LDA spriteLayoutOriginY
-  CLC
-  ADC #TILE_WIDTH
-  STA arg1                    ; Collision detection checking middle of bullet
+  JSR SubPixelMove            ; Move the X position
+
   ; Test collsiion with enemies
-  JSR FindClosestEnemyIndex
-  CMP #$FF                    ; Sentinel index, Nothing nearby
-  BEQ .worldCollision
+  ; JSR FindClosestEnemyIndex
+  ; CMP #$FF                    ; Sentinel index, Nothing nearby
+  ; BEQ .worldCollision
   ; TODO store index to apply damage
-  LDA arg7                    ; The distance stored by the search
-  CMP #PLAYER_BULLET_RAD      ; Is it less than the player hit distance?
-  BCC .hitEnemy
+  ; LDA arg7                    ; The distance stored by the search
+  ; CMP #PLAYER_BULLET_RAD      ; Is it less than the player hit distance?
+  ; BCC .hitEnemy
 .worldCollision:
-  ; x and y are still set up from enemy check, but set the pointers back
-  LDA bulletFrame
-  STA pointerLo
-  JSR StoreSpritePosition
-  LDA spriteLayoutOriginX
-  CLC
-  ADC #TILE_WIDTH             ; Center of bullet x
-  STA arg0
-  LDA spriteLayoutOriginY
-  CLC
-  ADC #TILE_WIDTH             ; Center of bullet y
-  STA arg1
+  LDX bulletCount
+  LDY positionOffset, X
+  LDA playerBulletPosX+1, Y
+  STA posX                    ; Store bullet X position
+  LDA playerBulletPosY+1, Y
+  STA posY                    ; Store bullet Y position
   LDA #0
-  STA arg2                    ; 0 width and height for collision, so we only
-  STA arg3                    ; Check a point
+  STA tilesW                  ; Store zero in tilesW and tilesH, only test
+  STA tilesH                  ;   a single point
   JSR TestWorldCollision
   CMP #1                      ; We've collided
   BEQ .collision
   JMP .updateLayout           ; No collision
-.hitEnemy:
-  LDA bulletFrame
-  STA pointerLo
-  ; TODO apply damage
+; .hitEnemy:
+;   LDA bulletFrame
+;   STA pointerLo
+;   ; TODO apply damage
 .collision:
   JMP HideBullet              ; We left the screen, bullet is dead
+
 .updateLayout:
-  LDX #$02                    ; Bullet is 2 tiles tall
+  JSR SetPointerForBullet     ; Also sets X to sprite index
+  LDY positionOffset, X       ; Get index of position variable for bullet
+  LDA playerBulletPosY+1, Y   ; Load the Y position
+  SEC
+  SBC #TILE_WIDTH             ; Pos is center of bullet, offset by 1 tile
+  STA posY                    ; Save Y position
+  LDA playerBulletPosX+1, Y   ; Load the X position
+  SEC
+  SBC #TILE_WIDTH             ; Pos is center of bullet, offset by 1 tile
+  STA posX                    ; Save X position
+  LDA #2                      ; Bullet is 2 tiles tall
+  STA tilesH
   JSR UpdateSpriteLayout      ; Update sprite layout
-  LDA #STATEMASK              ; Check again if we're in an anim tick, if so
-  AND animTick                ; update the anim, otherwise we're done
-  BEQ .updateAnim
-  JMP IncrementBulletLoop
-.updateAnim:
-  LDA bulletFrame             ; Move pointer back to where we stored it
-  STA pointerLo               ; So we can update attributes
+  JSR SetPointerForBullet     ; Set pointer back to update frames
   LDA bulletAnim              ; Load the animation state
   CLC
-  ADC bulletCount             ; Add an offset of the current bullet count
+  ADC bulletCount             ; Offset by bullet count
   AND #STATEMASK              ; Check the bullet frame
-  CMP #$03                    ; Frame 3
+  CMP #3                      ; Frame 3
   BEQ .frame3
-  CMP #$02                    ; Frame 2
+  CMP #2                      ; Frame 2
   BEQ .frame2
-  CMP #$01                    ; Frame 1
+  CMP #1                      ; Frame 1
   BEQ .frame1
 ;frame0
   JMP AssignBulletAnim0
@@ -761,7 +722,7 @@ AssignBulletAnim3:
 ; Takes pre-filled bullet frames and attributes and applies them to the
 ; current bullet pointer
 ApplyBulletSettings:
-  LDX #$00                    ; Starts our loop at 0
+  LDX #0                      ; Starts our loop at 0
 .loop:
   LDA bulletFrame, X
   LDY #SPRITETIL              ; Assign tile
@@ -778,18 +739,36 @@ ApplyBulletSettings:
   BNE .loop
   JMP IncrementBulletLoop
 
+; Set pointer for enemy sprite
+SetPointerForEnemy:
+  LDX enemyCount
+  LDA spriteOffset, X         ; Get sprite offset for index
+  CLC
+  ADC #ENEMY0
+  STA pointerLo               ; Store sprite at index in pointerLo
+  RTS
+
 UpdateEnemies:
   LDA #SPRITEHI
   STA pointerHi
-  LDA #ENEMY0
-  STA pointerLo
   LDA #0
-  STA arg0
+  STA enemyCount
 .loop:
-  LDX #2
+  JSR SetPointerForEnemy
+  LDY positionOffset, X       ; Get position index offset for current enemy
+  LDA enemyPosX+1, Y          ; Load enemy X position
+  SEC
+  SBC #TILE_WIDTH             ; Left edge is 1 tile left
+  STA posX                    ; Store X position
+  LDA enemyPosY+1, Y          ; Load enemy Y position
+  SEC
+  SBC #TILE_WIDTH             ; Top edge is 1 tile up
+  STA posY                    ; Store Y position
+  LDA #2                      ; Enemies are 2 tiles high
+  STA tilesH
   JSR UpdateSpriteLayout
-  INC arg0
-  LDA arg0
+  INC enemyCount
+  LDA enemyCount
   CMP #ENEMYCOUNT
   BNE .loop
   RTS
@@ -811,38 +790,40 @@ StoreSpritePosition:
   RTS
 
 ; Sets all sprites to hidden for a given layout
-; Expects pointerLo to be set for the top left sprite address
-; Expects X to be set to sprite height in tiles
 ; Expects all sprites to be 2 tiles wide
+; Expects pointerLo to be set for the top left sprite address
+; Args:
+;   tilesH                    - Height of sprite in tiles
 HideSpriteLayout:
   LDA #$FF                    ; Store "offscreen" FF in sprite y
-  LDY #$00                    ; Store sprite y origin offset
+  LDY #0                      ; Store sprite y origin offset
   STA [pointerLo], Y          ; Set Y's
-  LDY #$04                    ; Next sprite's Y
+  LDY #4                      ; Next sprite's Y
   STA [pointerLo], Y
   JSR MovePointerOneRow       ; Increment pointer for next loop
-  DEX
+  DEC tilesH
+  LDA tilesH
   BNE HideSpriteLayout        ; Continue loop for next row
   RTS
 
 ; Update sprite layout for a group of sprites
-; Expects pointerLo to be set to the top left sprite address
-; Expects X to be set to sprite height in tiles
+; Expects pointerLo to be set to the top left sprite address, and the sprite
+; to be placed where it should be in the world already
 ; Expects all sprites to be 2 tiles wide
+;
+; Args:
+;   posX                      - TL sprite position X
+;   posY                      - TL sprite position Y
+;   tilesH                    - Number of tiles high the sprite is
+;
+; Trashes Y
 UpdateSpriteLayout:
-  LDY #$00                    ; Store sprite y origin
-  LDA [pointerLo], Y
-  STA spriteLayoutOriginY
-  LDY #SPRITEX                ; Store sprite x origin
-  LDA [pointerLo], Y
-  STA spriteLayoutOriginX
-.loop:
-  LDA spriteLayoutOriginY     ; Set sprite Y's
-  LDY #$00                    ; Row y0
+  LDA posY                    ; Set sprite Y's
+  LDY #0                      ; Row y0
   STA [pointerLo], Y
-  LDY #$04                    ; Row y1
+  LDY #4                      ; Row y1
   STA [pointerLo], Y
-  LDA spriteLayoutOriginX     ; Set X's
+  LDA posX                    ; Load X
   LDY #SPRITEX                ; Set sprite X's
   STA [pointerLo], Y
   CLC
@@ -850,12 +831,13 @@ UpdateSpriteLayout:
   LDY #SPRITEX+4              ; Second sprite's X
   STA [pointerLo], Y
   JSR MovePointerOneRow       ; Increment Y for next loop
-  LDA spriteLayoutOriginY     ; Increment row Y
+  LDA posY                    ; Increment row Y
   CLC
   ADC #TILE_WIDTH
-  STA spriteLayoutOriginY
-  DEX
-  BNE .loop
+  STA posY
+  DEC tilesH
+  LDA tilesH
+  BNE UpdateSpriteLayout
   RTS
 
 ; In preparation of SubPixelMove, find sign on velocity
@@ -919,48 +901,35 @@ SubPixelMove:
   STA [pointerSub], Y         ; Store pixel
   RTS
 
-; Test whether the coordinates for Atan2 are equal, uses the same
-; args as Atan2, but does not modify them.
-; A will be 0 if true, 1 if false
-CoordsEqual:
-  LDA arg0                    ; x1
-  CMP arg1                    ; x2
-  BNE .notEqual
-  LDA arg2                    ; y1
-  CMP arg3                    ; y2
-  BNE .notEqual
-  LDA #0                      ; Both are equal
-  RTS
-.notEqual:
-  LDA #1                      ; Not equal
-  RTS
-
 ; from https://codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle
-; arg0 - x1
-; arg1 - x2
-; arg2 - y1
-; arg3 - y2
-; uses arg4 for octant
-; A will be the 256 degree angle
+; posX        - x1
+; posY        - y1
+; posX2       - x2
+; posY2       - y2
+;
+; Local:
+; octant
+; A will be the 256 degree angle, also in angle
+; X and Y will be trashed
 Atan2:
   LDA #0
-  STA arg4
-  LDA arg0
+  STA octant
+  LDA posX
   SEC
-  SBC arg1
+  SBC posX2
   BCS .o1
   EOR #$ff
 .o1:
   TAX
-  ROL arg4
-  LDA arg2
+  ROL octant
+  LDA posY
   SEC
-  SBC arg3
+  SBC posY2
   BCS .o2
   EOR #$ff
 .o2:
   TAY
-  ROL arg4
+  ROL octant
   LDA log2_tab,x
   SEC
   SBC log2_tab,y
@@ -968,12 +937,13 @@ Atan2:
   EOR #$ff
 .o3:
   TAX
-  LDA arg4
-  ROL a
+  LDA octant
+  ROL A
   AND #%111
   TAY
   LDA atan_tab,x
   EOR octant_adjust,y
+  STA angle
   RTS
 
 ; Based on the source position, find the closest enemy
@@ -1057,14 +1027,16 @@ ManhattanDistance:
   RTS
 
 ; Tests world collision at point
-; posX            - origin x
-; posY            - origin y
-; tilesW          - tiles w
-; tilesH          - tiles h
+;
+; Args:
+;   posX                      - origin x
+;   posY                      - origin y
+;   tilesW                    - tiles w
+;   tilesH                    - tiles h
 ;
 ; Local:
-; tilesX          - store x tile after calculating
-; tilesWOriginal  - store original w
+;   tilesX                    - store x tile after calculating
+;   tilesWOriginal            - store original w
 ;
 ; A will be 0 if not colliding, 1 if colliding
 ; X and Y will be trashed

@@ -111,16 +111,20 @@ skelsprites:
   .db $4C,  $0D,  %00000010,  $AF
   .db $4C,  $0D,  %01000010,  $B7
 
-; Gets enemy sprite pointer by index
-enemyOffset:
-  .db 0, ENEMYSIZE, 2 * ENEMYSIZE, 3 * ENEMYSIZE, 4 * ENEMYSIZE, 5 * ENEMYSIZE
+; Gets position offset by index
+positionOffset:
+  .db 0,  2,  4,  6,  8, 10
+
+; Gets byte offset for 4x4 sprites by index
+spriteOffset:
+  .db 0, 16, 32, 48, 64, 80
 
 ; Enemy spawn point - tile * tile width = pixel location
 enemySpawnX:
-  .db 10 * TILE_WIDTH,  4 * TILE_WIDTH, 26 * TILE_WIDTH, 16 * TILE_WIDTH,  4 * TILE_WIDTH, 16 * TILE_WIDTH
+  .db 11 * TILE_WIDTH,  5 * TILE_WIDTH, 27 * TILE_WIDTH, 17 * TILE_WIDTH,  5 * TILE_WIDTH, 17 * TILE_WIDTH
 
 enemySpawnY:
-  .db  6 * TILE_WIDTH, 18 * TILE_WIDTH, 18 * TILE_WIDTH,  8 * TILE_WIDTH, 12 * TILE_WIDTH, 24 * TILE_WIDTH
+  .db  7 * TILE_WIDTH, 19 * TILE_WIDTH, 19 * TILE_WIDTH,  9 * TILE_WIDTH, 13 * TILE_WIDTH, 25 * TILE_WIDTH
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Velocity tables

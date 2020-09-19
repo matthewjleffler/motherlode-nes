@@ -19,7 +19,7 @@ pointerSub              .rs 1 ; pointer to subpixel
 pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
-temp                    .rs 1 ; temp reusable byte ; TODO remove
+state                   .rs 1 ; state, for bullets or enemies
 buttons1                .rs 1 ; controller 1 buttons
 buttons2                .rs 1 ; controller 2 buttons
 buttons1fresh           .rs 1 ; controller 1 buttons fresh
@@ -34,6 +34,7 @@ spriteLastPosX          .rs 1 ; X of sprite last frame
 bulletFrame             .rs 4 ; The frames to apply to the current bullet
 bulletAttr              .rs 4 ; The attributes to apply to the current bullet
 bulletCount             .rs 1 ; Total number of bullets to render
+enemyCount              .rs 1 ; Total number of enemies alive now
 playerBulletStates      .rs 1 ; On/off states for 4 player bullets
                               ; 00 - off
                               ; 01 - on
@@ -48,9 +49,12 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 88776655 44332211
 playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel
-playerBulletSub         .rs 8 ; 4 * 2
-playerBulletVel         .rs 4 ; 4 (indexes)
 playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
+playerBulletPosX        .rs 2 * 4 ; Lo sub, hi pixel * 4
+playerBulletPosY        .rs 2 * 4 ; Lo sub, hi pixel * 4
+playerBulletVel         .rs 4 ; 4 (indexes)
+enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
+enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
@@ -133,6 +137,16 @@ BULL_EXP          = $02
 ; Positional
 posX              = arg0
 posY              = arg1
+posX2             = arg2
+posY2             = arg3
+
+; Atan2
+octant            = arg4
+angle             = arg4 ; Reuse arg4 after finishing with octant
+
+; Find Enemy
+enemyIndex        = arg8
+distance          = arg9
 
 ; Tile sizes
 tilesW            = arg2
