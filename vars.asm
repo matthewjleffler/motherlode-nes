@@ -32,7 +32,8 @@ bulletAnim              .rs 1 ; Bullet anim state
 spriteLastPosY          .rs 1 ; Y of sprite last frame
 spriteLastPosX          .rs 1 ; X of sprite last frame
 bulletCount             .rs 1 ; Total number of bullets to render
-enemyCount              .rs 1 ; Total number of enemies alive now
+enemyCount              .rs 1 ; Total number of enemies to update
+enemySpawnTimer         .rs 1 ; How many spawn ticks remain before trying to spawn
 playerBulletStates      .rs 1 ; On/off states for 4 player bullets
                               ; 00 - off
                               ; 01 - on
@@ -59,6 +60,13 @@ bulletAttr              .rs 4 ; The attributes to apply to the current bullet
 playerBulletVel         .rs 4 ; 4 (indexes)
 playerBulletPosX        .rs 2 * 4 ; Lo sub, hi pixel * 4
 playerBulletPosY        .rs 2 * 4 ; Lo sub, hi pixel * 4
+enemyState              .rs 6 ; 6, one byte per enemy
+                              ; 00 - off
+                              ; 01 - spawning 1
+                              ; 02 - spwaning 2
+                              ; 03 - dying 1
+                              ; 04 - dying 2
+                              ; 10 - skeleton
 enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 
@@ -108,6 +116,9 @@ SCOREPLACES       = 8         ; Score places
 PLAYER_BULLET_RAD = 10        ; Distance player bullets can hit at
 PLAYER_SPAWN_X    = $80
 PLAYER_SPAWN_Y    = $80
+ENEMY_ALIVE_STATE = 10        ; Min enemy state alive
+SPAWN_MIN_TICKS   = 15        ; Min spawn ticks between spawns
+SPAWN_BLOCK_TICKS = 3         ; Blocked spawn retry ticks
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement

@@ -90,39 +90,39 @@ AssignPlayerSprites:
   BNE .loop
 
 ; TODO move this to gameplay code
-AssignEnemySprites:
-  LDA #SPRITEHI               ; setup enemy skeleton sprite
-  STA pointerHi
-  LDA #ENEMY0
-  STA pointerLo
-  LDX #6                      ; 6 enemy spawns
-.loopX:
-  LDY #0
-.loopY
-  LDA skelsprites, Y
-  STA [pointerLo], Y
-  INY
-  CPY #ENEMYSIZE
-  BNE .loopY                  ; Increment Y loop
-  LDA pointerLo
-  CLC
-  ADC #ENEMYSIZE
-  STA pointerLo
-  DEX
-  CPX #0
-  BNE .loopX
+; AssignEnemySprites:
+;   LDA #SPRITEHI               ; setup enemy skeleton sprite
+;   STA pointerHi
+;   LDA #ENEMY0
+;   STA pointerLo
+;   LDX #6                      ; 6 enemy spawns
+; .loopX:
+;   LDY #0
+; .loopY
+;   LDA skelsprites, Y
+;   STA [pointerLo], Y
+;   INY
+;   CPY #ENEMYSIZE
+;   BNE .loopY                  ; Increment Y loop
+;   LDA pointerLo
+;   CLC
+;   ADC #ENEMYSIZE
+;   STA pointerLo
+;   DEX
+;   CPX #0
+;   BNE .loopX
 
-AssignEnemyPositions:
-  LDX #0
-.loop:
-  LDY positionOffset, X
-  LDA enemySpawnY, X          ; Get the spawn Y at index X
-  STA enemyPosY+1, Y          ; Store the enemy Y position
-  LDA enemySpawnX, X          ; Get the spawn X at index X
-  STA enemyPosX+1, Y          ; Store the enemy X position
-  INX
-  CPX #ENEMYCOUNT
-  BNE .loop
+; AssignEnemyPositions:
+;   LDX #0
+; .loop:
+;   LDY positionOffset, X
+;   LDA enemySpawnY, X          ; Get the spawn Y at index X
+;   STA enemyPosY+1, Y          ; Store the enemy Y position
+;   LDA enemySpawnX, X          ; Get the spawn X at index X
+;   STA enemyPosX+1, Y          ; Store the enemy X position
+;   INX
+;   CPX #ENEMYCOUNT
+;   BNE .loop
 
 LoadBackground:
   LDA $2002                   ; Read PPU status to reset the high/low latch
@@ -158,14 +158,10 @@ InitializeVariables:
   STA playerPosX+1
   LDA #PLAYER_SPAWN_Y
   STA playerPosY+1
-  ; TODO set up game state - title etc
-  LDX #0
-.loopBullets:
-  LDA #$FF
-  STA playerBulletPosY+1      ; Set bullet hidden offscreen
-  INX
-  CPX #BULLETCOUNT
-  BNE .loopBullets
+  LDA #10
+  STA seed                    ; TODO init seed with player input
+  LDA #SPAWN_MIN_TICKS
+  STA enemySpawnTimer
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 
@@ -236,6 +232,7 @@ GameLoop:
   JSR TestPlayerSpecial
   JSR TestShootBullet
   JSR UpdateBullets
+  JSR TestSpawnEnemies
   JSR UpdateEnemies
   JSR DrawScoreUpdate
   RTS
@@ -446,7 +443,7 @@ TestPlayerMove:
 
 TestShootBullet:
   LDA #BULLETSHOOTMASK
-  AND animTick                ; Every 7 frames?
+  AND animTick                ; Every 8 frames
   BEQ .testEnemyNear
   RTS                         ; Not the right tick
 .testEnemyNear:
@@ -807,6 +804,52 @@ SetPointerForEnemy:
   STA pointerLo               ; Store sprite at index in pointerLo
   RTS
 
+TestSpawnEnemies:
+  LDA animTick
+  AND #BULLETSHOOTMASK        ; Count every 8 ticks
+  BEQ .countTick              ; Are we on 0?
+  RTS                         ; No
+.countTick:
+  DEC enemySpawnTimer
+  LDA enemySpawnTimer
+  BEQ .spawnEnemy             ; Timer ran out, spawn enemy
+  RTS
+.spawnEnemy:
+  JSR RNG                     ; Randomly pick a new spawn time
+  LSR A                       ; Divide rng by 16
+  LSR A
+  LSR A
+  LSR A
+  CMP #SPAWN_MIN_TICKS        ; Are we at least min time?
+  BCC .setMin
+  JMP .storeSpawnTime
+.setMin:
+  LDA #SPAWN_MIN_TICKS
+.storeSpawnTime:
+  STA enemySpawnTimer         ; Store spawn time
+  JSR RNG                     ; Rng to find a spawn slot
+  LSR A                       ; LSR 5 times to get 1-8
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  CMP #ENEMYCOUNT             ; Are we within the enemy count?
+  BCC .checkEnemyState        ; Yes - check whether this spot is free
+  LDA #SPAWN_BLOCK_TICKS      ; No, set ticks to blocked amount and try again
+  STA enemySpawnTimer
+  RTS
+.checkEnemyState:
+  TAX                         ; Put index in X
+  LDA enemyState, X           ; Load state for that enemy
+  BEQ .doSpawnEnemy           ; Is it ready to spawn? (in off state)
+  LDA #SPAWN_BLOCK_TICKS      ; No - blocked spawn at this slot
+  STA enemySpawnTimer
+  RTS
+.doSpawnEnemy:
+  LDA #1                      ; Flag enemy as spawning
+  STA enemyState, X
+  RTS
+
 UpdateEnemies:
   LDA #SPRITEHI
   STA pointerHi
@@ -1069,6 +1112,9 @@ FindClosestEnemyIndex:
   STA distance
   STA enemyCount              ; Set a sentinel value of FF in result index
 .loop:
+  LDA enemyState, X          ; Check enemy states to ensure it's a valid target
+  CMP #ENEMY_ALIVE_STATE      ; Is it alive?
+  BCC .count                  ; No - go to next enemy
   LDY positionOffset, X       ; Get position offset for enemy index
   LDA enemyPosX+1, Y          ; Load enemy X position
   STA posX2                   ; Store in x2 for manhattan distance
