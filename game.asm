@@ -386,11 +386,8 @@ TestPlayerMove:
   RTS
 
 TestShootBullet:
-  ; LDA #BULLETSHOOTMASK
-  ; AND animTick                ; Every 7 frames?
-  LDA #BUTTONA
-  AND buttons1fresh
-  CMP #BUTTONA
+  LDA #BULLETSHOOTMASK
+  AND animTick                ; Every 7 frames?
   BEQ .testEnemyNear
   RTS                         ; Not the right tick
 .testEnemyNear:
@@ -398,11 +395,10 @@ TestShootBullet:
   STA posY                    ; Store player Y for atan2 and find enemy
   LDA playerPosX+1            ; Load player X
   STA posX                    ; Store player X for atan2 and find enemy
-  ; JSR FindClosestEnemyIndex : TODO store this index
-  LDX #0                      ; Start X count at 0
-  LDY #0                      ; Start Y count at 0
-  LDA #0                      ; TEMP enemy index in 0
-  ; STA enemyIndex              ; TEMP enemy index in 0
+  JSR FindClosestEnemyIndex
+  LDX #0
+  STX bulletCount             ; In case we loop, start bullet count here
+  LDY #0                      ; Set Y to 0 (haven't shot)
   CMP #$FF                    ; No enemy to shoot at? Don't shoot
   BNE .findFreeBullet
   RTS
@@ -412,58 +408,42 @@ TestShootBullet:
   BNE .nextBullet             ; Not off, skip
   CPY #0                      ; Have we already shot a bullet?
   BNE .nextBullet             ; Aleady shot, skip
-  ; Found free bullet, activate it, set it's position, find it's
-  ; velocity index
+; Found free bullet
   LDA #BULL_MOV               ; Set the current bullet state to moving
   STA state
   JSR SetBulletState
-
-  ; Set bullet position to the current player position
   LDY positionOffset, X       ; Get position byte offset for bullet index
   LDA #0                      ; Clear bullet subpixels
   STA playerBulletPosX, Y
   STA playerBulletPosY, Y
   LDA playerPosX+1            ; Load position X from player
   STA playerBulletPosX+1, Y   ; Set bullet pixel X
+  STA posX                    ; Set atan2 x1 to spawn position
   LDA playerPosY+1            ; Load position Y from player
   STA playerBulletPosY+1, Y   ; Set bullet pixel Y
-
-  ; TODO get position of enemy index stored earlier
-  ; LDA #100                     ; TEMP shoot at a fixed pos
-  ; STA posX2
-  ; STA posY2
-
-  ; STX bulletCount             ; Store current bullet index while Atan2 happens
-  ; JSR Atan2                   ; Get degrees between player and enemy
-  ; LSR A                       ; LSR 4 times to get 32 degrees
-  ; LSR A
-  ; LSR A
-  ; LDX bulletCount             ; Put bullet index back in X after Atan2
-  LDA #0                      ; TEMP zero index
+  STA posY                    ; Set atan2 y1 to spawn position
+  LDX enemyCount              ; Get enemy index from earlier
+  LDY positionOffset, X       ; Get position offset for enemy index
+  LDA enemyPosX+1, Y          ; Load enemy X
+  STA posX2                   ; Store enemy X
+  LDA enemyPosY+1, Y          ; Load enemy Y
+  STA posY2                   ; Store enemy Y
+  JSR Atan2                   ; Get degrees between player and enemy
+  LSR A                       ; LSR 4 times to get 32 degrees
+  LSR A
+  LSR A
+  LDX bulletCount             ; Put bulletCount back in X
   STA playerBulletVel, X      ; Store the velocity index for the current bullet
   LDY #1                      ; Mark that we've already shot
 .nextBullet:
-  INX                         ; Increment counter
+  INC bulletCount             ; Increment counter
+  LDX bulletCount
   CPX #BULLETCOUNT
   BNE .findFreeBullet         ; If not 0, check next bullet, or cycle the state
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Sprite Updates
-
-MovePointerOneRow:
-  LDA pointerLo
-  CLC
-  ADC #$08                    ; 8 bytes for 2 4 byte sprites
-  STA pointerLo
-  RTS
-
-MovePointerTwoRows:
-  LDA pointerLo
-  CLC
-  ADC #$10                    ; 16 bytes for 4 4 byte sprites
-  STA pointerLo
-  RTS
 
 UpdatePlayerSprites:
   LDA #SPRITEHI               ; Sprite hi bites
@@ -581,6 +561,7 @@ DoBulletMove:
   ADC positionOffset, X       ; Move the pointer forward to the right index
   STA pointerSub
   JSR SubPixelMove            ; Move the Y position
+  ; STA posY                    ; Store new position for collision
   ; Move pixel X
   LDY playerBulletVel, X      ; Load bullet velocity index in Y
   LDA playerBulletMoveX, Y    ; Velocity Lo
@@ -593,22 +574,23 @@ DoBulletMove:
   ADC positionOffset, X       ; Move the pointer forward to the right index
   STA pointerSub
   JSR SubPixelMove            ; Move the X position
-
-  ; Test collsiion with enemies
-  ; JSR FindClosestEnemyIndex
-  ; CMP #$FF                    ; Sentinel index, Nothing nearby
-  ; BEQ .worldCollision
-  ; TODO store index to apply damage
-  ; LDA arg7                    ; The distance stored by the search
-  ; CMP #PLAYER_BULLET_RAD      ; Is it less than the player hit distance?
-  ; BCC .hitEnemy
-.worldCollision:
+  ; STA posX                    ; Store new position for collision
+  ; Save the final movement positions for searches
+  ; TODO why doesn't SubPixelMove do this with A?
   LDX bulletCount
   LDY positionOffset, X
   LDA playerBulletPosX+1, Y
   STA posX                    ; Store bullet X position
   LDA playerBulletPosY+1, Y
   STA posY                    ; Store bullet Y position
+  ; Test collsiion with enemies
+  JSR FindClosestEnemyIndex
+  CMP #$FF                    ; Sentinel index, Nothing nearby
+  BEQ .worldCollision
+  LDA distance                ; The distance stored by the search
+  CMP #PLAYER_BULLET_RAD      ; Is it less than the player hit distance?
+  BCC .hitEnemy               ; Go to hit enemy routine
+.worldCollision:
   LDA #0
   STA tilesW                  ; Store zero in tilesW and tilesH, only test
   STA tilesH                  ;   a single point
@@ -616,10 +598,8 @@ DoBulletMove:
   CMP #1                      ; We've collided
   BEQ .collision
   JMP .updateLayout           ; No collision
-; .hitEnemy:
-;   LDA bulletFrame
-;   STA pointerLo
-;   ; TODO apply damage
+.hitEnemy:
+  ; TODO apply damage to enemy in enemyCount
 .collision:
   JMP HideBullet              ; We left the screen, bullet is dead
 
@@ -776,22 +756,18 @@ UpdateEnemies:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Utils
 
-; Set up pointerHi and lo for the sprite to cache,
-; puts its current pixel values in:
-; spriteLayoutOriginY
-; spriteLayoutOriginX
-StoreSpritePosition:
-  LDY #0                      ; pixel Y
-  LDA [pointerLo], Y
-  STA spriteLayoutOriginY
-  LDY #SPRITEX                ; pixel X
-  LDA [pointerLo], y
-  STA spriteLayoutOriginX
+; For sprite updates, move pointerLo down by two sprites
+MovePointerOneRow:
+  LDA pointerLo
+  CLC
+  ADC #$08                    ; 8 bytes for 2 4 byte sprites
+  STA pointerLo
   RTS
 
 ; Sets all sprites to hidden for a given layout
 ; Expects all sprites to be 2 tiles wide
 ; Expects pointerLo to be set for the top left sprite address
+;
 ; Args:
 ;   tilesH                    - Height of sprite in tiles
 HideSpriteLayout:
@@ -841,7 +817,9 @@ UpdateSpriteLayout:
   RTS
 
 ; In preparation of SubPixelMove, find sign on velocity
-; velHi     - hi velocity
+;
+; Args:
+;   velHi                     - hi velocity
 ; Sets velSign to hi velocity sign
 StoreVeloctySign:
   LDA velHi                   ; Check hi velocity for sign
@@ -872,9 +850,13 @@ QuadrupleVelocity:
 
 ; Move subpixel based on velocity
 ; pointerSub should be set up to subpixel
-; velLo     - lo velocity
-; velHi     - hi velocity
-; velSign   - Sign of velocity
+;
+; Args:
+;   velLo                     - lo velocity
+;   velHi                     - hi velocity
+;   velSign                   - Sign of velocity
+;
+; A is new pixel position at the end ; TODO it's not - why?
 SubPixelMove:
   LDY #0                      ; Set Y to 0
   LDA velSign                 ; Check sign
@@ -902,13 +884,15 @@ SubPixelMove:
   RTS
 
 ; from https://codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle
-; posX        - x1
-; posY        - y1
-; posX2       - x2
-; posY2       - y2
+;
+; Args:
+;   posX                      - x1
+;   posY                      - y1
+;   posX2                     - x2
+;   posY2                     - y2
 ;
 ; Local:
-; octant
+;   octant
 ; A will be the 256 degree angle, also in angle
 ; X and Y will be trashed
 Atan2:
@@ -947,83 +931,82 @@ Atan2:
   RTS
 
 ; Based on the source position, find the closest enemy
-; arg0 - source X
-; arg1 - source Y
-; Stores index in A
-; Stores distance in arg7
+;
+; Args:
+;   posX                      - source X
+;   posY                      - source Y
+;
+; Stores index in A, and enemyCount
+; Stores distance in distance
 FindClosestEnemyIndex:
   LDX #0                      ; Start count at 0
-  LDA #$FF                    ; Set max distance in arg7, to check against
-  STA arg7
-  STA arg6                    ; Set a sentinel value of FF in result index
-  LDA #ENEMY0
-  STA pointerLo               ; Setup pointer for enemy
+  LDA #$FF                    ; Set max distance in distance, to check against
+  STA distance
+  STA enemyCount              ; Set a sentinel value of FF in result index
 .loop:
-  JSR StoreSpritePosition
-  LDA spriteLayoutOriginX
-  CLC
-  ADC #TILE_WIDTH
-  STA arg1                    ; Put enemy center X in arg1
-  LDA spriteLayoutOriginY
-  CLC
-  ADC #TILE_WIDTH
-  STA arg3                    ; Put enemy center Y in arg3
+  LDY positionOffset, X       ; Get position offset for enemy index
+  LDA enemyPosX+1, Y          ; Load enemy X position
+  STA posX2                   ; Store in x2 for manhattan distance
+  LDA enemyPosY+1, Y          ; Load enemy Y position
+  STA posY2                   ; Store in y2 for manhattan distance
   JSR ManhattanDistance       ; Get distance in A
-  CLC
-  CMP arg7                    ; Compare to current lowest distance
+  CMP distance                ; Compare to current lowest distance
   BCC .smallest
   JMP .count
 .smallest:
-  STA arg7                    ; What we have now is now smallest distance
-  TXA
-  STA arg6                    ; Store the new lowest index in arg6
+  STA distance                ; What we have now is now smallest distance
+  STX enemyCount              ; Store the new lowest index in enemyCount
 .count:
   INX                         ; Increment X
-  JSR MovePointerTwoRows      ; Move pointer to next enemy
   CPX #ENEMYCOUNT
   BNE .loop
-  LDA arg6                    ; Record the lowest index we got
+  LDA enemyCount              ; Record the lowest index we got
   RTS
 
 ; Calclulate distance between two points
-; arg0 - x1
-; arg1 - x2
-; arg2 - y1
-; arg3 - y2
-; uses arg4 sum
+;
+; Args:
+;   posX                      - x1
+;   posY                      - y1
+;   posX2                     - x2
+;   posY2                     - y2
+; Local:
+;   sum
 ManhattanDistance:
 ;findX
-  LDA arg0                    ; Load x1
-  CMP arg1                    ; Compare x2
+  LDA posX                    ; Load x1
+  CMP posX2                   ; Compare x2
   BCC .x1less
 ;x2less
   SEC                         ; x1 still in A
-  SBC arg1                    ; subtract x2
-  STA arg4                    ; store result
+  SBC posX2                   ; subtract x2
+  STA sum                     ; store result
   JMP .findY
 .x1less:
-  LDA arg1                    ; Load x2
+  LDA posX2                   ; Load x2
   SEC
-  SBC arg0                    ; subtract x1
-  STA arg4
+  SBC posX                    ; subtract x1
+  STA sum
 .findY:
-  LDA arg2                    ; Load y1
-  CMP arg3                    ; Compare y2
+  LDA posY                    ; Load y1
+  CMP posY2                   ; Compare y2
   BCC .y1less
 ;y2less
   SEC                         ; y1 still in A
-  SBC arg3                    ; subtract y2
+  SBC posY2                   ; subtract y2
   JMP .sum
 .y1less:
-  LDA arg3                    ; Load y2
+  LDA posY2                   ; Load y2
   SEC
-  SBC arg2                    ; subtract y1
+  SBC posY                    ; subtract y1
 .sum:
   CLC                         ; y is in A
-  ADC arg4                    ; add with x
+  ADC sum                     ; add with x
   BVC .finish                 ; if we didn't overflow, we're done
   LDA #$FF                    ; Just set result to full if we overflowed
 .finish:
+  STA sum                     ; Store final sum
+  CLC
   RTS
 
 ; Tests world collision at point

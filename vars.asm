@@ -140,12 +140,10 @@ posY              = arg1
 posX2             = arg2
 posY2             = arg3
 
-; Atan2
+; Atan2 / Math
 octant            = arg4
 angle             = arg4 ; Reuse arg4 after finishing with octant
-
-; Find Enemy
-enemyIndex        = arg8
+sum               = arg4
 distance          = arg9
 
 ; Tile sizes
