@@ -195,7 +195,7 @@ GameLoop:
   JSR TestPlayerMove
   JSR UpdatePlayerSprites
   JSR TestPlayerSpecial
-  JSR TestShootBullet
+  ; JSR TestShootBullet
   JSR UpdateBullets
   JSR TestSpawnEnemies
   JSR UpdateEnemies
@@ -949,6 +949,107 @@ DrawSkeletonFrame2:
   JSR SetEnemySprites
   RTS
 
+MoveEnemy:
+  LDX enemyCount              ; Get enemy index
+  LDY positionOffset, X       ; Offset position
+  LDA enemyPosX+1, Y          ; Store last positions
+  STA spriteLastPosX
+  LDA enemyPosY+1, Y
+  STA spriteLastPosY
+; Start Y movement
+  LDY enemyVel, X             ; Get enemy velocity index
+  CPY #$FF                    ; Do we have the non-moving sentinel set?
+  BNE .applyY                 ; No, move
+  RTS                         ; Yes, don't move
+.applyY:
+  LDA enemySlowMoveY, Y       ; Get actual velocity for index
+  STA velLo                   ; Velocity Lo
+  LDA enemySlowMoveY+16, Y    ; 16 directions
+  STA velHi                   ; Velocity Hi
+  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
+; Do Y movement
+  LDA #HIGH(enemyPosY)        ; Set pointerSub for player Y
+  STA pointerSubHi
+  LDA #LOW(enemyPosY)
+  CLC
+  ADC positionOffset, X       ; Offset to correct enemy
+  STA pointerSubLo
+  JSR SubPixelMove            ; Do movement
+; Do Y collision
+  LDY positionOffset, X
+  LDA enemyPosY+1, Y          ; Load new enemy Y pos
+  SEC
+  SBC #TILE_WIDTH             ; Offset up to top edge
+  STA posY                    ; Store the value in the Y arg
+  LDA velSign                 ; Check sign from earlier
+  BNE .runCollisionY          ; Moving in negative, check top edge
+  LDA posY                    ; Collision test on bottom, move Y to test down
+  CLC                         ;   by 3 tiles, the height of the enemy
+  ADC #TILES_PX_2
+  STA posY                    ; Store the change
+.runCollisionY:
+  LDA enemyPosX+1, Y          ; Load enemy X pos
+  SEC
+  SBC #TILE_WIDTH             ; Offset to left edge
+  CLC
+  ADC #TILE_HALF              ; Offset it slightly to squeeze through gaps
+  STA posX                    ; Store collision X
+  LDA #1
+  STA tilesW                  ; Testing 1 tile width, left and right edge
+  LDA #0
+  STA tilesH                  ; Testing only a single row H
+  JSR TestWorldCollision
+  BEQ .applyX                 ; No collision, we're good
+  LDA spriteLastPosY          ; We got a collsiion, reset Y
+  LDX enemyCount
+  LDY positionOffset, X
+  STA enemyPosY+1, Y
+.applyX:
+  LDX enemyCount              ; Make sure enemy index is in X
+  LDY enemyVel, X             ; Get enemy velocity index
+  LDA enemySlowMoveX, Y       ; Subpixel
+  STA velLo                   ; Velocity Lo
+  LDA enemySlowMoveX+16, Y    ; 16 directions
+  STA velHi                   ; Velocity Hi
+  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
+; Do X movement
+  LDA #HIGH(enemyPosX)       ; Set pointerSub for player subpixel X
+  STA pointerSubHi
+  LDA #LOW(enemyPosX)
+  CLC
+  ADC positionOffset, X
+  STA pointerSubLo
+  JSR SubPixelMove            ; Do move
+; Do X collision
+  LDY positionOffset, X       ; Load up position we moved to
+  LDA enemyPosX+1, Y
+  SEC
+  SBC #TILE_WIDTH             ; Offset back to left edge
+  STA posX                    ; Store the value in the X arg
+  LDA velSign
+  BNE .runCollisionX          ; Moving in negative, check left edge
+  LDA posX
+  CLC                         ; Collision test on right, move X to test right by
+  ADC #TILES_PX_2             ; 2 tiles, the width of the enemy
+  STA posX
+.runCollisionX:
+  LDA enemyPosY+1, Y          ; Load enemy Y position
+  SEC
+  SBC #TILE_WIDTH             ; Offset to top edge
+  STA posY                    ; Store y position
+  LDA #0
+  STA tilesW                  ; Single line X
+  LDA #2
+  STA tilesH                  ; 2 tiles high
+  JSR TestWorldCollision
+  BEQ .done                   ; No collision, we're good
+  LDX enemyCount
+  LDY positionOffset, X
+  LDA spriteLastPosX          ; We got a collision, set X back
+  STA enemyPosX+1, Y
+.done:
+  RTS
+
 UpdateEnemies:
   LDA #SPRITEHI               ; Set hi sprite pointer for later
   STA pointerHi
@@ -1017,7 +1118,9 @@ UpdateEnemyLoop:
 
 .stateSkeleton:
   LDA enemyAnim               ; Load enemy anim
+  CLC
   ADC enemyCount              ; Offset by anim
+  LSR A                       ; Divide by 2
   AND #ANIM_MASK
   BEQ .skelFrame1
   JSR DrawSkeletonFrame2
@@ -1025,11 +1128,16 @@ UpdateEnemyLoop:
 .skelFrame1:
   JSR DrawSkeletonFrame1
 .skelUpdate:
-  ; TODO AI logic
   JSR TestEnemyHealth
-  BEQ .updateLayout           ; Still alive
-  LDX #1
+  BEQ .skelMove               ; Still alive
+  LDX #1                      ; Dead, add 10 points
   JSR AddScore
+  JMP .updateLayout
+.skelMove:
+  ; TODO assign velocity
+  LDA #10
+  STA enemyVel, X
+  JSR MoveEnemy
   JMP .updateLayout
 
 .updateLayout:
