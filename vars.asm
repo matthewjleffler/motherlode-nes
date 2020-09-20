@@ -29,6 +29,7 @@ buttons2fresh           .rs 1 ; controller 2 buttons fresh
 animTick                .rs 1 ; Slows down animation counting
 seed                    .rs 2 ; Stores prng seed
 bulletAnim              .rs 1 ; Bullet anim state
+enemyAnim               .rs 1 ; Enemy anim state
 spriteLastPosY          .rs 1 ; Y of sprite last frame
 spriteLastPosX          .rs 1 ; X of sprite last frame
 bulletCount             .rs 1 ; Total number of bullets to render
@@ -65,6 +66,7 @@ enemyTick               .rs 6 ; 6, one byte per enemy
 enemyHealth             .rs 6 ; 6, one byte per enemy
 enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
+enemyVel                .rs 6 ; 6 (indexes)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
@@ -105,6 +107,7 @@ REMOVE_LR         = %11111100
 COLLISIONMASK     = %10000000 ; Mask for collision bit
 STATEMASK         = %00000011 ; Mask for lower two bits
 BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
+ENEMYANIMMASK     = %00001111 ; Mask for animating enemies
 HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
 ENEMYCOUNT        = 6         ; Max number of enemies
@@ -123,6 +126,7 @@ EN_STATE_SPAWN2   = 2         ; Spawn2
 EN_STATE_DIE1     = 3         ; Die1
 EN_STATE_SKEL     = 10        ; Skeleton
 
+EN_TIME_ANIM      = 1         ; Default anim time
 EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
 EN_TIME_SPAWN2    = 2         ; " " spawn2
 EN_TIME_DIE1      = 6         ; " " die1
@@ -149,6 +153,7 @@ PLAYERSIZE        = 6 * 4     ; player byte size
 ENEMYSIZE         = 4 * 4     ; enemy byte size
 
 ; Animation
+ANIM_MASK         = %00000001 ; Low bit to check animation
 BULLETNOFL        = %00000001 ; Bullet attributes with flipping and color
 BULLETFLX         = %01000001
 BULLETFLY         = %10000001
@@ -167,6 +172,8 @@ ENEMY_DIE10       = $0E
 ENEMY_DIE11       = $0F
 ENEMY_SKEL10      = $10
 ENEMY_SKEL11      = $11
+ENEMY_SKEL20      = $12
+ENEMY_SKEL21      = $13
 
 ; Tiles
 STATUS_BUTT_OFF   = $62

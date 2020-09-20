@@ -930,6 +930,10 @@ SetEnemyStateDie1:
 SetEnemyStateSkel:
   LDA #EN_SKEL_HEALTH
   STA enemyHealth, X
+  JSR DrawSkeletonFrame1
+  RTS
+
+DrawSkeletonFrame1:
   LDA #ENEMY_SKEL10
   STA spriteT
   LDA #ENEMY_SKEL11
@@ -937,57 +941,97 @@ SetEnemyStateSkel:
   JSR SetEnemySprites
   RTS
 
+DrawSkeletonFrame2:
+  LDA #ENEMY_SKEL20
+  STA spriteT
+  LDA #ENEMY_SKEL21
+  STA spriteB
+  JSR SetEnemySprites
+  RTS
+
 UpdateEnemies:
-  LDA #SPRITEHI
+  LDA #SPRITEHI               ; Set hi sprite pointer for later
   STA pointerHi
-  LDX #0
+  LDX #0                      ; Get X ready
   STX enemyCount
+  LDA animTick                ; Check global anim tick
+  AND #ENEMYANIMMASK          ; Is it the right tick?
+  BNE UpdateEnemyLoop         ; No, just update
+  INC enemyAnim               ; Yes, update anim
 UpdateEnemyLoop:
   LDX enemyCount              ; Get count from enemyCount
+  LDA animTick                ; Check tick again
+  AND #STATEMASK
+  BEQ .checkState             ; Not the right frame, skip count
+  DEC enemyTick, X            ; Decrement this enemy's tick
+.checkState:
   LDA enemyState, X           ; Check state
   CMP #EN_STATE_OFF
-  BEQ .off
+  BEQ .checkStateOff
+  CMP #EN_STATE_SPAWN1
+  BEQ .checkStateSpawn1
+  CMP #EN_STATE_SPAWN2
+  BEQ .checkStateSpawn2
+  CMP #EN_STATE_DIE1
+  BEQ .checkStateDie1
   CMP #EN_STATE_SKEL
-  BEQ .skeleton
-  JMP .countTimer
-.off:
+  BEQ .checkStateSkeleton
+.checkStateOff:
   JMP IncrementEnemyCount     ; Not on, skip enemy
-.skeleton:
+.checkStateSpawn1:
+  JMP .stateSpawn1
+.checkStateSpawn2:
+  JMP .stateSpawn2
+.checkStateDie1:
+  JMP .stateDie1
+.checkStateSkeleton:
+  JMP .stateSkeleton
+
+; Actual state implementation
+.stateSpawn1:
+  LDA enemyTick, X            ; Did our timer run out?
+  BEQ .stateSpawn1Done        ; Yes
+  JMP .updateLayout           ; No, just draw
+.stateSpawn1Done:
+  LDA #EN_STATE_SPAWN2
+  JSR SetEnemyState
+  JMP .updateLayout
+
+.stateSpawn2:
+  LDA enemyTick, X            ; Did our timer run out?
+  BEQ .stateSpawn2Done        ; Yes
+  JMP .updateLayout           ; No, just draw
+.stateSpawn2Done:
+  LDA #EN_STATE_SKEL
+  JSR SetEnemyState
+  JMP .updateLayout
+
+.stateDie1:
+  LDA enemyTick, X            ; Did our timer run out?
+  BEQ .stateDie1Done          ; Yes
+  JMP .updateLayout           ; No, just draw
+.stateDie1Done:
+  LDA #EN_STATE_OFF
+  JSR SetEnemyState
+  JMP IncrementEnemyCount
+
+.stateSkeleton:
+  LDA enemyAnim               ; Load enemy anim
+  ADC enemyCount              ; Offset by anim
+  AND #ANIM_MASK
+  BEQ .skelFrame1
+  JSR DrawSkeletonFrame2
+  JMP .skelUpdate
+.skelFrame1:
+  JSR DrawSkeletonFrame1
+.skelUpdate:
   ; TODO AI logic
   JSR TestEnemyHealth
   BEQ .updateLayout           ; Still alive
   LDX #1
   JSR AddScore
   JMP .updateLayout
-.countTimer:
-  LDA animTick
-  AND #STATEMASK
-  BNE .updateLayout
-  DEC enemyTick, X
-  LDA enemyTick, X
-  BEQ .actOnTick
-  JMP .updateLayout
-.actOnTick:
-  LDA enemyState, X
-  CMP #EN_STATE_SPAWN1
-  BEQ .spawn1done
-  CMP #EN_STATE_SPAWN2
-  BEQ .spawn2done
-  CMP #EN_STATE_DIE1
-  BEQ .die1done
-  JMP .updateLayout           ; Unhandled state
-.spawn1done:
-  LDA #EN_STATE_SPAWN2
-  JSR SetEnemyState
-  JMP .updateLayout
-.spawn2done:
-  LDA #EN_STATE_SKEL
-  JSR SetEnemyState
-  JMP .updateLayout
-.die1done:
-  LDA #EN_STATE_OFF
-  JSR SetEnemyState
-  JMP IncrementEnemyCount
+
 .updateLayout:
   JSR SetPointerForEnemy
   LDY positionOffset, X       ; Get position index offset for current enemy
