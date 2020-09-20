@@ -638,9 +638,8 @@ DoBulletMove:
   BEQ .collision
   JMP .updateLayout           ; No collision
 .hitEnemy:
-  ; TODO apply damage to enemy in enemyCount
-  LDX #1
-  JSR AddScore
+  LDX enemyCount
+  DEC enemyHealth, X
 .collision:
   JMP HideBullet              ; We left the screen, bullet is dead
 
@@ -775,6 +774,19 @@ SetPointerForEnemy:
   STA pointerLo               ; Store sprite at index in pointerLo
   RTS
 
+; A will be state, 0 is alive, 1 is dead
+TestEnemyHealth:
+  LDX enemyCount
+  LDA enemyHealth, X
+  BEQ .die
+  LDA #0
+  RTS
+.die:
+  LDA #EN_STATE_DIE1
+  JSR SetEnemyState
+  LDA #1
+  RTS
+
 TestSpawnEnemies:
   LDA animTick
   AND #BULLETSHOOTMASK        ; Count every 8 ticks
@@ -840,6 +852,8 @@ SetEnemyState:
   BEQ .stateSpawn1
   CMP #EN_STATE_SPAWN2
   BEQ .stateSpawn2
+  CMP #EN_STATE_DIE1
+  BEQ .stateDie1
   CMP #EN_STATE_SKEL
   BEQ .stateSkel
   RTS                         ; No state matched
@@ -849,6 +863,8 @@ SetEnemyState:
   JMP SetEnemyStateSpawn1
 .stateSpawn2:
   JMP SetEnemyStateSpawn2
+.stateDie1:
+  JMP SetEnemyStateDie1
 .stateSkel:
   JMP SetEnemyStateSkel
 
@@ -901,6 +917,16 @@ SetEnemyStateSpawn2:
   JSR SetEnemySprites
   RTS
 
+SetEnemyStateDie1:
+  LDA #EN_TIME_DIE1
+  STA enemyTick, X
+  LDA #ENEMY_DIE10
+  STA spriteT
+  LDA #ENEMY_DIE11
+  STA spriteB
+  JSR SetEnemySprites
+  RTS
+
 SetEnemyStateSkel:
   LDA #EN_SKEL_HEALTH
   STA enemyHealth, X
@@ -927,7 +953,11 @@ UpdateEnemyLoop:
 .off:
   JMP IncrementEnemyCount     ; Not on, skip enemy
 .skeleton:
-  ; TODO do skeleton stuff
+  ; TODO AI logic
+  JSR TestEnemyHealth
+  BEQ .updateLayout           ; Still alive
+  LDX #1
+  JSR AddScore
   JMP .updateLayout
 .countTimer:
   LDA animTick
@@ -943,6 +973,8 @@ UpdateEnemyLoop:
   BEQ .spawn1done
   CMP #EN_STATE_SPAWN2
   BEQ .spawn2done
+  CMP #EN_STATE_DIE1
+  BEQ .die1done
   JMP .updateLayout           ; Unhandled state
 .spawn1done:
   LDA #EN_STATE_SPAWN2
@@ -952,6 +984,10 @@ UpdateEnemyLoop:
   LDA #EN_STATE_SKEL
   JSR SetEnemyState
   JMP .updateLayout
+.die1done:
+  LDA #EN_STATE_OFF
+  JSR SetEnemyState
+  JMP IncrementEnemyCount
 .updateLayout:
   JSR SetPointerForEnemy
   LDY positionOffset, X       ; Get position index offset for current enemy
@@ -970,8 +1006,10 @@ IncrementEnemyCount:
   INC enemyCount
   LDA enemyCount
   CMP #ENEMYCOUNT
-  BNE UpdateEnemyLoop
+  BNE .continue
   RTS
+.continue:
+  JMP UpdateEnemyLoop
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Scoring

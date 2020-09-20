@@ -109,7 +109,7 @@ HICLEAR           = %00111111 ; Mask to clear high bits
 BULLETCOUNT       = 4         ; Number of bullets to render
 ENEMYCOUNT        = 6         ; Max number of enemies
 SCOREPLACES       = 8         ; Score places
-PLAYER_BULLET_RAD = 10        ; Distance player bullets can hit at
+PLAYER_BULLET_RAD = 12        ; Distance player bullets can hit at
 PLAYER_SPAWN_X    = $80
 PLAYER_SPAWN_Y    = $80
 
@@ -121,15 +121,13 @@ EN_STATE_OFF      = 0         ; Off
 EN_STATE_SPAWN1   = 1         ; Spawn1
 EN_STATE_SPAWN2   = 2         ; Spawn2
 EN_STATE_DIE1     = 3         ; Die1
-EN_STATE_DIE2     = 4         ; Die2
 EN_STATE_SKEL     = 10        ; Skeleton
 
 EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
 EN_TIME_SPAWN2    = 2         ; " " spawn2
-EN_TIME_DIE1      = 2         ; " " die1
-EN_TIME_DIE2      = 1         ; " " die2
+EN_TIME_DIE1      = 6         ; " " die1
 
-EN_SKEL_HEALTH    = 5
+EN_SKEL_HEALTH    = 10
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
@@ -161,12 +159,14 @@ BULLFRAME2        = $08
 BULLFRAME3        = $09
 ENEMYATT_L        = %00000010
 ENEMYATT_R        = %01000010
-ENEMY_SPAWN10     = $0C
-ENEMY_SPAWN11     = $0D
-ENEMY_SPAWN20     = $0E
-ENEMY_SPAWN21     = $0F
-ENEMY_SKEL10      = $0A
-ENEMY_SKEL11      = $0B
+ENEMY_SPAWN10     = $0A
+ENEMY_SPAWN11     = $0B
+ENEMY_SPAWN20     = $0C
+ENEMY_SPAWN21     = $0D
+ENEMY_DIE10       = $0E
+ENEMY_DIE11       = $0F
+ENEMY_SKEL10      = $10
+ENEMY_SKEL11      = $11
 
 ; Tiles
 STATUS_BUTT_OFF   = $62
