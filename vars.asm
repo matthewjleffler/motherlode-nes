@@ -125,14 +125,17 @@ EN_STATE_SPAWN1   = 1         ; Spawn1
 EN_STATE_SPAWN2   = 2         ; Spawn2
 EN_STATE_DIE1     = 3         ; Die1
 EN_STATE_SKEL     = 10        ; Skeleton
+EN_STATE_HEAD     = 11        ; Head
 
 EN_TIME_ANIM      = 1         ; Default anim time
 EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
 EN_TIME_SPAWN2    = 2         ; " " spawn2
 EN_TIME_DIE1      = 6         ; " " die1
 EN_TIME_PATH      = 20        ; How many ticks before we run atan to pathfind
+EN_TIME_HEAD      = 20         ; How many ticks in between shooting?
 
 EN_SKEL_HEALTH    = 10
+EN_HEAD_HEALTH    = 25
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
@@ -175,6 +178,10 @@ ENEMY_SKEL10      = $10
 ENEMY_SKEL11      = $11
 ENEMY_SKEL20      = $12
 ENEMY_SKEL21      = $13
+ENEMY_HEAD10      = $14
+ENEMY_HEAD11      = $15
+ENEMY_HEAD20      = $16
+ENEMY_HEAD21      = $17
 
 ; Tiles
 STATUS_BUTT_OFF   = $62

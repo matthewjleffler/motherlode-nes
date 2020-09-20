@@ -860,6 +860,8 @@ SetEnemyState:
   BEQ .stateDie1
   CMP #EN_STATE_SKEL
   BEQ .stateSkel
+  CMP #EN_STATE_HEAD
+  BEQ .stateHead
   RTS                         ; No state matched
 .stateTurnOff:
   JMP SetEnemyStateOff
@@ -871,6 +873,8 @@ SetEnemyState:
   JMP SetEnemyStateDie1
 .stateSkel:
   JMP SetEnemyStateSkel
+.stateHead:
+  JMP SetEnemyStateHead
 
 SetEnemyStateOff:
   JSR SetPointerForEnemy
@@ -939,6 +943,16 @@ SetEnemyStateSkel:
   JSR DrawSkeletonFrame1
   RTS
 
+SetEnemyStateHead:
+  LDA #$FF
+  STA enemyVel, X
+  LDA #EN_TIME_HEAD
+  STA enemyTick, X
+  LDA #EN_HEAD_HEALTH
+  STA enemyHealth, X
+  JSR DrawHeadFrame1
+  RTS
+
 DrawSkeletonFrame1:
   LDA #ENEMY_SKEL10
   STA spriteT
@@ -951,6 +965,22 @@ DrawSkeletonFrame2:
   LDA #ENEMY_SKEL20
   STA spriteT
   LDA #ENEMY_SKEL21
+  STA spriteB
+  JSR SetEnemySprites
+  RTS
+
+DrawHeadFrame1:
+  LDA #ENEMY_HEAD10
+  STA spriteT
+  LDA #ENEMY_HEAD11
+  STA spriteB
+  JSR SetEnemySprites
+  RTS
+
+DrawHeadFrame2:
+  LDA #ENEMY_HEAD20
+  STA spriteT
+  LDA #ENEMY_HEAD21
   STA spriteB
   JSR SetEnemySprites
   RTS
@@ -1083,6 +1113,8 @@ UpdateEnemyLoop:
   BEQ .checkStateDie1
   CMP #EN_STATE_SKEL
   BEQ .checkStateSkeleton
+  CMP #EN_STATE_HEAD
+  BEQ .checkStateHead
 .checkStateOff:
   JMP IncrementEnemyCount     ; Not on, skip enemy
 .checkStateSpawn1:
@@ -1093,6 +1125,8 @@ UpdateEnemyLoop:
   JMP .stateDie1
 .checkStateSkeleton:
   JMP .stateSkeleton
+.checkStateHead:
+  JMP .stateHead
 
 ; Actual state implementation
 .stateSpawn1:
@@ -1109,7 +1143,7 @@ UpdateEnemyLoop:
   BEQ .stateSpawn2Done        ; Yes
   JMP .updateLayout           ; No, just draw
 .stateSpawn2Done:
-  LDA #EN_STATE_SKEL
+  LDA #EN_STATE_HEAD          ; TODO pick enemy randomly
   JSR SetEnemyState
   JMP .updateLayout
 
@@ -1154,6 +1188,43 @@ UpdateEnemyLoop:
   LDX enemyCount              ; Reset X for enemy
   STA enemyVel, X             ; Store velocity
 .skelMove:
+  JSR MoveEnemy
+  JMP .updateLayout
+
+.stateHead:
+  LDA enemyAnim               ; Load enemy anim
+  CLC
+  ADC enemyCount              ; Offset by anim
+  LSR A                       ; Divide by 2
+  AND #ANIM_MASK
+  BEQ .headFrame1
+  JSR DrawHeadFrame2
+  JMP .headUpdate
+.headFrame1:
+  JSR DrawHeadFrame1
+.headUpdate:
+  JSR TestEnemyHealth
+  BEQ .headShoot
+  LDX #2
+  JSR AddScore
+  JMP .updateLayout
+.headShoot:
+  LDA enemyTick, X            ; Did our shooting tick run out?
+  BNE .headMove               ; No - just move
+  LDA #EN_TIME_HEAD
+  STA enemyTick, X
+  ; TODO shoot a bullet
+  JSR RNG
+  JSR Divide4
+  BNE .still
+  JSR RNG                     ; Pick a random move direction
+  JSR Divide16
+  STA enemyVel, X             ; Set the velocity
+  JMP .headMove
+.still:
+  LDA #$FF                    ; Not moving
+  STA enemyVel, X
+.headMove:
   JSR MoveEnemy
   JMP .updateLayout
 
@@ -1356,21 +1427,46 @@ SubPixelMove:
   STA [pointerSubLo], Y       ; Store pixel
   RTS
 
-; Atan2 divided down to 32 degrees
-Atan232:
-  JSR Atan2
+Divide32:
   LSR A
   LSR A
   LSR A
   RTS
 
+Divide16:
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  RTS
+
+Divide8:
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  RTS
+
+Divide4:
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  RTS
+
+; Atan2 divided down to 32 degrees
+Atan232:
+  JSR Atan2
+  JSR Divide32
+  RTS
+
 ; Atan2 divided down to 16 degrees
 Atan216:
   JSR Atan2
-  LSR A
-  LSR A
-  LSR A
-  LSR A
+  JSR Divide16
   RTS
 
 ; from https://codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle
