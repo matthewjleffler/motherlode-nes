@@ -55,18 +55,13 @@ backgroundBuffer        .rs 160
 score                   .rs 8 ; 8 places for score counting
 playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel
-bulletFrame             .rs 4 ; The frames to apply to the current bullet
-bulletAttr              .rs 4 ; The attributes to apply to the current bullet
+spriteFrame             .rs 6 ; The frames to apply to the current sprite
+spriteAttr              .rs 6 ; The attributes to apply to the current bullet
 playerBulletVel         .rs 4 ; 4 (indexes)
 playerBulletPosX        .rs 2 * 4 ; Lo sub, hi pixel * 4
 playerBulletPosY        .rs 2 * 4 ; Lo sub, hi pixel * 4
 enemyState              .rs 6 ; 6, one byte per enemy
-                              ; 00 - off
-                              ; 01 - spawning 1
-                              ; 02 - spwaning 2
-                              ; 03 - dying 1
-                              ; 04 - dying 2
-                              ; 10 - skeleton
+enemyTick               .rs 6 ; 6, one byte per enemy
 enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 
@@ -116,9 +111,22 @@ SCOREPLACES       = 8         ; Score places
 PLAYER_BULLET_RAD = 10        ; Distance player bullets can hit at
 PLAYER_SPAWN_X    = $80
 PLAYER_SPAWN_Y    = $80
+
+; Enemies
 ENEMY_ALIVE_STATE = 10        ; Min enemy state alive
 SPAWN_MIN_TICKS   = 15        ; Min spawn ticks between spawns
 SPAWN_BLOCK_TICKS = 3         ; Blocked spawn retry ticks
+EN_STATE_OFF      = 0         ; Off
+EN_STATE_SPAWN1   = 1         ; Spawn1
+EN_STATE_SPAWN2   = 2         ; Spawn2
+EN_STATE_DIE1     = 3         ; Die1
+EN_STATE_DIE2     = 4         ; Die2
+EN_STATE_SKEL     = 10        ; Skeleton
+
+EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
+EN_TIME_SPAWN2    = 2         ; " " spawn2
+EN_TIME_DIE1      = 2         ; " " die1
+EN_TIME_DIE2      = 1         ; " " die2
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement
@@ -148,6 +156,16 @@ BULLFRAME0        = $06
 BULLFRAME1        = $07
 BULLFRAME2        = $08
 BULLFRAME3        = $09
+ENEMYATT_L        = %00000010
+ENEMYATT_R        = %01000010
+ENEMY_SPAWN10     = $0C
+ENEMY_SPAWN11     = $0D
+ENEMY_SPAWN20     = $0E
+ENEMY_SPAWN21     = $0F
+ENEMY_SKEL10      = $0A
+ENEMY_SKEL11      = $0B
+
+; Tiles
 STATUS_BUTT_OFF   = $62
 STATUS_BUTT_ON    = $63
 STATUS_HEART_OFF  = $60
@@ -191,3 +209,7 @@ velSign           = arg2
 len               = arg0
 startX            = arg1
 oldX              = arg2
+
+; Sprite assignment
+spriteT           = arg0
+spriteB           = arg1

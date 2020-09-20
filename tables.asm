@@ -105,12 +105,6 @@ playersprites:
   .db $90,  $04,  %00000000,  $80
   .db $90,  $05,  %00000000,  $88
 
-skelsprites:
-  .db $44,  $0C,  %00000010,  $AF
-  .db $44,  $0C,  %01000010,  $B7
-  .db $4C,  $0D,  %00000010,  $AF
-  .db $4C,  $0D,  %01000010,  $B7
-
 ; Gets position offset by index
 positionOffset:
   .db 0,  2,  4,  6,  8, 10

@@ -89,41 +89,6 @@ AssignPlayerSprites:
   CPY #PLAYERSIZE             ; Loop until we have finished all the player bytes
   BNE .loop
 
-; TODO move this to gameplay code
-; AssignEnemySprites:
-;   LDA #SPRITEHI               ; setup enemy skeleton sprite
-;   STA pointerHi
-;   LDA #ENEMY0
-;   STA pointerLo
-;   LDX #6                      ; 6 enemy spawns
-; .loopX:
-;   LDY #0
-; .loopY
-;   LDA skelsprites, Y
-;   STA [pointerLo], Y
-;   INY
-;   CPY #ENEMYSIZE
-;   BNE .loopY                  ; Increment Y loop
-;   LDA pointerLo
-;   CLC
-;   ADC #ENEMYSIZE
-;   STA pointerLo
-;   DEX
-;   CPX #0
-;   BNE .loopX
-
-; AssignEnemyPositions:
-;   LDX #0
-; .loop:
-;   LDY positionOffset, X
-;   LDA enemySpawnY, X          ; Get the spawn Y at index X
-;   STA enemyPosY+1, Y          ; Store the enemy Y position
-;   LDA enemySpawnX, X          ; Get the spawn X at index X
-;   STA enemyPosX+1, Y          ; Store the enemy X position
-;   INX
-;   CPX #ENEMYCOUNT
-;   BNE .loop
-
 LoadBackground:
   LDA $2002                   ; Read PPU status to reset the high/low latch
   LDA #BG_HI
@@ -715,76 +680,80 @@ DoBulletMove:
 
 AssignBulletAnim0:
   LDA #BULLFRAME0             ; Assign frame 0 to all tiles
-  STA bulletFrame+0
-  STA bulletFrame+1
-  STA bulletFrame+2
-  STA bulletFrame+3
+  STA spriteFrame+0
+  STA spriteFrame+1
+  STA spriteFrame+2
+  STA spriteFrame+3
   LDA #BULLETNOFL             ; TL no flip
-  STA bulletAttr+0
+  STA spriteAttr+0
   LDA #BULLETFLX              ; TR flip x
-  STA bulletAttr+1
+  STA spriteAttr+1
   LDA #BULLETFLY              ; BL flip y
-  STA bulletAttr+2
+  STA spriteAttr+2
   LDA #BULLETFLXY             ; BR flip xy
-  STA bulletAttr+3
-  JMP ApplyBulletSettings
+  STA spriteAttr+3
+  JSR ApplySpriteSettings
+  JMP IncrementBulletLoop
 
 AssignBulletAnim1:
   LDA #BULLFRAME1             ; Assign frame 1 to TL and BR tiles
-  STA bulletFrame+0
-  STA bulletFrame+3
+  STA spriteFrame+0
+  STA spriteFrame+3
   LDA #BULLFRAME2             ; Assign frame 2 to TR and BL tiles
-  STA bulletFrame+1
-  STA bulletFrame+2
+  STA spriteFrame+1
+  STA spriteFrame+2
   LDA #BULLETNOFL             ; TL and TR no flip
-  STA bulletAttr+0
-  STA bulletAttr+1
+  STA spriteAttr+0
+  STA spriteAttr+1
   LDA #BULLETFLXY             ; BL and BR flip xy
-  STA bulletAttr+2
-  STA bulletAttr+3
-  JMP ApplyBulletSettings
+  STA spriteAttr+2
+  STA spriteAttr+3
+  JSR ApplySpriteSettings
+  JMP IncrementBulletLoop
 
 AssignBulletAnim2:
   LDA #BULLFRAME3             ; Assign frame 3 to all tiles
-  STA bulletFrame+0
-  STA bulletFrame+1
-  STA bulletFrame+2
-  STA bulletFrame+3
+  STA spriteFrame+0
+  STA spriteFrame+1
+  STA spriteFrame+2
+  STA spriteFrame+3
   LDA #BULLETNOFL             ; TL no flip
-  STA bulletAttr+0
+  STA spriteAttr+0
   LDA #BULLETFLX              ; TR flip x
-  STA bulletAttr+1
+  STA spriteAttr+1
   LDA #BULLETFLY              ; BL flip y
-  STA bulletAttr+2
+  STA spriteAttr+2
   LDA #BULLETFLXY             ; BR flip xy
-  STA bulletAttr+3
-  JMP ApplyBulletSettings
+  STA spriteAttr+3
+  JSR ApplySpriteSettings
+  JMP IncrementBulletLoop
 
 AssignBulletAnim3:
   LDA #BULLFRAME2             ; Assign frame 2 to TL and BR tiles
-  STA bulletFrame+0
-  STA bulletFrame+3
+  STA spriteFrame+0
+  STA spriteFrame+3
   LDA #BULLFRAME1             ; Assign frame 1 to TR and BL tiles
-  STA bulletFrame+1
-  STA bulletFrame+2
+  STA spriteFrame+1
+  STA spriteFrame+2
   LDA #BULLETFLX              ; TL and TR flip x
-  STA bulletAttr+0
-  STA bulletAttr+1
+  STA spriteAttr+0
+  STA spriteAttr+1
   LDA #BULLETFLY              ; BL and BR flip y
-  STA bulletAttr+2
-  STA bulletAttr+3
-  JMP ApplyBulletSettings
+  STA spriteAttr+2
+  STA spriteAttr+3
+  JSR ApplySpriteSettings
+  JMP IncrementBulletLoop
 
-; Takes pre-filled bullet frames and attributes and applies them to the
-; current bullet pointer
-ApplyBulletSettings:
+; Takes pre-filled frames and attributes and applies them to the
+; current sprite pointer
+ApplySpriteSettings:
   LDX #0                      ; Starts our loop at 0
 .loop:
-  LDA bulletFrame, X
+  LDA spriteFrame, X
   LDY #SPRITETIL              ; Assign tile
   STA [pointerLo], Y
   LDY #SPRITEATT              ; Assign attributes
-  LDA bulletAttr, X
+  LDA spriteAttr, X
   STA [pointerLo], Y
   LDA pointerLo               ; Increment pointer by 4 bytes to next sprite
   CLC
@@ -793,10 +762,12 @@ ApplyBulletSettings:
   INX
   CPX #$04                    ; Check whether we're done with the loop
   BNE .loop
-  JMP IncrementBulletLoop
+  RTS
 
 ; Set pointer for enemy sprite
 SetPointerForEnemy:
+  LDA #SPRITEHI
+  STA pointerHi
   LDX enemyCount
   LDA spriteOffset, X         ; Get sprite offset for index
   CLC
@@ -846,16 +817,128 @@ TestSpawnEnemies:
   STA enemySpawnTimer
   RTS
 .doSpawnEnemy:
-  LDA #1                      ; Flag enemy as spawning
-  STA enemyState, X
+  STX enemyCount              ; Store this index in enemycount for later calls
+  LDA #0                      ; Clear subpixels
+  LDY positionOffset, X
+  STA enemyPosX, Y
+  STA enemyPosY, Y
+  LDA enemySpawnX, X          ; Set position X to spawn X
+  STA enemyPosX+1, Y
+  LDA enemySpawnY, X          ; Set position Y to spawn Y
+  STA enemyPosY+1, Y
+  LDA #EN_STATE_SPAWN1        ; Flag enemy as spawning
+  JSR SetEnemyState
+  RTS
+
+; A should be state to assign ; TODO state variable instead?
+SetEnemyState:
+  LDX enemyCount              ; Put index in X
+  STA enemyState, X           ; Store state
+  CMP #EN_STATE_OFF           ; Are we turned off?
+  BEQ .stateTurnOff
+  CMP #EN_STATE_SPAWN1        ; Are we spawning?
+  BEQ .stateSpawn1
+  CMP #EN_STATE_SPAWN2
+  BEQ .stateSpawn2
+  RTS                         ; No state matched
+.stateTurnOff:
+  JMP SetEnemyStateOff
+.stateSpawn1:
+  JMP SetEnemyStateSpawn1
+.stateSpawn2:
+  JMP SetEnemyStateSpawn2
+
+SetEnemyStateOff:
+  JSR SetPointerForEnemy
+  LDA #2
+  STA tilesH
+  JSR HideSpriteLayout
+  RTS
+
+; Expects mirrored L/R
+;
+; Args:
+;  spriteT                    - Top sprite
+;  spriteB                    - Bottom sprite
+SetEnemySprites:
+  LDA spriteT
+  STA spriteFrame+0           ; TL/TR mirrored
+  STA spriteFrame+1
+  LDA spriteB
+  STA spriteFrame+2
+  STA spriteFrame+3
+  LDA #ENEMYATT_L             ; Enemy, No mirror
+  STA spriteAttr+0
+  STA spriteAttr+2
+  LDA #ENEMYATT_R             ; Enemy, mirror
+  STA spriteAttr+1
+  STA spriteAttr+3
+  JSR SetPointerForEnemy
+  JSR ApplySpriteSettings
+  RTS
+
+SetEnemyStateSpawn1:
+  LDA #EN_TIME_SPAWN1
+  STA enemyTick, X
+  LDA #ENEMY_SPAWN10
+  STA spriteT
+  LDA #ENEMY_SPAWN11
+  STA spriteB
+  JSR SetEnemySprites
+  RTS
+
+SetEnemyStateSpawn2:
+  LDA #EN_TIME_SPAWN2
+  STA enemyTick, X
+  LDA #ENEMY_SPAWN20
+  STA spriteT
+  LDA #ENEMY_SPAWN21
+  STA spriteB
+  JSR SetEnemySprites
   RTS
 
 UpdateEnemies:
   LDA #SPRITEHI
   STA pointerHi
-  LDA #0
-  STA enemyCount
-.loop:
+  LDX #0
+  STX enemyCount
+UpdateEnemyLoop:
+  LDX enemyCount              ; Get count from enemyCount
+  LDA enemyState, X           ; Check state
+  CMP #EN_STATE_OFF
+  BEQ .off
+  CMP #EN_STATE_SKEL
+  BEQ .skeleton
+  JMP .countTimer
+.off:
+  JMP IncrementEnemyCount     ; Not on, skip enemy
+.skeleton:
+  ; TODO do skeleton stuff
+  JMP .updateLayout
+.countTimer:
+  LDA animTick
+  AND #STATEMASK
+  BNE .updateLayout
+  DEC enemyTick, X
+  LDA enemyTick, X
+  BEQ .actOnTick
+  JMP .updateLayout
+.actOnTick:
+  LDA enemyState, X
+  CMP #EN_STATE_SPAWN1
+  BEQ .spawn1done
+  CMP #EN_STATE_SPAWN2
+  BEQ .spawn2done
+  JMP .updateLayout           ; Unhandled state
+.spawn1done:
+  LDA #EN_STATE_SPAWN2
+  JSR SetEnemyState
+  JMP .updateLayout
+.spawn2done:
+  LDA #EN_STATE_OFF
+  JSR SetEnemyState
+  JMP IncrementEnemyCount
+.updateLayout:
   JSR SetPointerForEnemy
   LDY positionOffset, X       ; Get position index offset for current enemy
   LDA enemyPosX+1, Y          ; Load enemy X position
@@ -869,10 +952,11 @@ UpdateEnemies:
   LDA #2                      ; Enemies are 2 tiles high
   STA tilesH
   JSR UpdateSpriteLayout
+IncrementEnemyCount:
   INC enemyCount
   LDA enemyCount
   CMP #ENEMYCOUNT
-  BNE .loop
+  BNE UpdateEnemyLoop
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
