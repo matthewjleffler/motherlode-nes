@@ -62,6 +62,7 @@ playerBulletPosX        .rs 2 * 4 ; Lo sub, hi pixel * 4
 playerBulletPosY        .rs 2 * 4 ; Lo sub, hi pixel * 4
 enemyState              .rs 6 ; 6, one byte per enemy
 enemyTick               .rs 6 ; 6, one byte per enemy
+enemyHealth             .rs 6 ; 6, one byte per enemy
 enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 
@@ -127,6 +128,8 @@ EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
 EN_TIME_SPAWN2    = 2         ; " " spawn2
 EN_TIME_DIE1      = 2         ; " " die1
 EN_TIME_DIE2      = 1         ; " " die2
+
+EN_SKEL_HEALTH    = 5
 
 ; Move Speed
 NEG_SIGN          = %10000000 ; Indicates negative movement

@@ -840,6 +840,8 @@ SetEnemyState:
   BEQ .stateSpawn1
   CMP #EN_STATE_SPAWN2
   BEQ .stateSpawn2
+  CMP #EN_STATE_SKEL
+  BEQ .stateSkel
   RTS                         ; No state matched
 .stateTurnOff:
   JMP SetEnemyStateOff
@@ -847,6 +849,8 @@ SetEnemyState:
   JMP SetEnemyStateSpawn1
 .stateSpawn2:
   JMP SetEnemyStateSpawn2
+.stateSkel:
+  JMP SetEnemyStateSkel
 
 SetEnemyStateOff:
   JSR SetPointerForEnemy
@@ -897,6 +901,16 @@ SetEnemyStateSpawn2:
   JSR SetEnemySprites
   RTS
 
+SetEnemyStateSkel:
+  LDA #EN_SKEL_HEALTH
+  STA enemyHealth, X
+  LDA #ENEMY_SKEL10
+  STA spriteT
+  LDA #ENEMY_SKEL11
+  STA spriteB
+  JSR SetEnemySprites
+  RTS
+
 UpdateEnemies:
   LDA #SPRITEHI
   STA pointerHi
@@ -935,9 +949,9 @@ UpdateEnemyLoop:
   JSR SetEnemyState
   JMP .updateLayout
 .spawn2done:
-  LDA #EN_STATE_OFF
+  LDA #EN_STATE_SKEL
   JSR SetEnemyState
-  JMP IncrementEnemyCount
+  JMP .updateLayout
 .updateLayout:
   JSR SetPointerForEnemy
   LDY positionOffset, X       ; Get position index offset for current enemy
