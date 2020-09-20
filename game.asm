@@ -195,7 +195,7 @@ GameLoop:
   JSR TestPlayerMove
   JSR UpdatePlayerSprites
   JSR TestPlayerSpecial
-  ; JSR TestShootBullet
+  JSR TestShootBullet
   JSR UpdateBullets
   JSR TestSpawnEnemies
   JSR UpdateEnemies
@@ -449,10 +449,7 @@ TestShootBullet:
   STA posX2                   ; Store enemy X
   LDA enemyPosY+1, Y          ; Load enemy Y
   STA posY2                   ; Store enemy Y
-  JSR Atan2                   ; Get degrees between player and enemy
-  LSR A                       ; LSR 4 times to get 32 degrees
-  LSR A
-  LSR A
+  JSR Atan232                 ; Get degrees between player and enemy
   LDX bulletCount             ; Put bulletCount back in X
   STA playerBulletVel, X      ; Store the velocity index for the current bullet
   LDY #1                      ; Mark that we've already shot
@@ -763,6 +760,13 @@ ApplySpriteSettings:
   BNE .loop
   RTS
 
+StorePlayerPosForSearch:
+  LDA playerPosX+1
+  STA posX2
+  LDA playerPosY+1
+  STA posY2
+  RTS
+
 ; Set pointer for enemy sprite
 SetPointerForEnemy:
   LDA #SPRITEHI
@@ -928,6 +932,8 @@ SetEnemyStateDie1:
   RTS
 
 SetEnemyStateSkel:
+  LDA #1
+  STA enemyTick, X            ; Set up path search tick to run first frame
   LDA #EN_SKEL_HEALTH
   STA enemyHealth, X
   JSR DrawSkeletonFrame1
@@ -1129,14 +1135,25 @@ UpdateEnemyLoop:
   JSR DrawSkeletonFrame1
 .skelUpdate:
   JSR TestEnemyHealth
-  BEQ .skelMove               ; Still alive
+  BEQ .skelCheckVel           ; Still alive
   LDX #1                      ; Dead, add 10 points
   JSR AddScore
   JMP .updateLayout
+.skelCheckVel:
+  LDA enemyTick, X            ; Did our pathfind tick run out?
+  BNE .skelMove               ; No, move with our last velocity
+  LDA #EN_TIME_PATH
+  STA enemyTick, X            ; Reset pathfind tick
+  LDY positionOffset, X
+  LDA enemyPosX+1, Y          ; Store X pos for atan2
+  STA posX
+  LDA enemyPosY+1, Y          ; Store Y pos for atan2
+  STA posY
+  JSR StorePlayerPosForSearch
+  JSR Atan216                 ; Atan2 16 degrees
+  LDX enemyCount              ; Reset X for enemy
+  STA enemyVel, X             ; Store velocity
 .skelMove:
-  ; TODO assign velocity
-  LDA #10
-  STA enemyVel, X
   JSR MoveEnemy
   JMP .updateLayout
 
@@ -1337,6 +1354,23 @@ SubPixelMove:
   LDA [pointerSubLo], Y       ; Load pixel
   SBC velHi                   ; Subtract hi velocity with carry
   STA [pointerSubLo], Y       ; Store pixel
+  RTS
+
+; Atan2 divided down to 32 degrees
+Atan232:
+  JSR Atan2
+  LSR A
+  LSR A
+  LSR A
+  RTS
+
+; Atan2 divided down to 16 degrees
+Atan216:
+  JSR Atan2
+  LSR A
+  LSR A
+  LSR A
+  LSR A
   RTS
 
 ; from https://codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle

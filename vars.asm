@@ -130,6 +130,7 @@ EN_TIME_ANIM      = 1         ; Default anim time
 EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
 EN_TIME_SPAWN2    = 2         ; " " spawn2
 EN_TIME_DIE1      = 6         ; " " die1
+EN_TIME_PATH      = 20        ; How many ticks before we run atan to pathfind
 
 EN_SKEL_HEALTH    = 10
 
