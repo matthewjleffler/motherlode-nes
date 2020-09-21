@@ -19,7 +19,7 @@ pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
 state                   .rs 1 ; state, for bullets or enemies
-debug                   .rs 1 ; for debug rendering - when set, draws in score
+debug                   .rs 1 ; for debug rendering
 scoreChanged            .rs 1 ; Whether or not score changed this frame
 bufferUpdateIndex       .rs 1 ; the current buffer offset for this update
 buttons1                .rs 1 ; controller 1 buttons
@@ -58,15 +58,18 @@ playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel
 spriteFrame             .rs 6 ; The frames to apply to the current sprite
 spriteAttr              .rs 6 ; The attributes to apply to the current bullet
-playerBulletVel         .rs 4 ; 4 (indexes)
 playerBulletPosX        .rs 2 * 4 ; Lo sub, hi pixel * 4
 playerBulletPosY        .rs 2 * 4 ; Lo sub, hi pixel * 4
+playerBulletVel         .rs 4 ; 4 (indexes)
 enemyState              .rs 6 ; 6, one byte per enemy
 enemyTick               .rs 6 ; 6, one byte per enemy
 enemyHealth             .rs 6 ; 6, one byte per enemy
 enemyPosX               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyVel                .rs 6 ; 6 (indexes)
+enemyBulletPosX         .rs 2 * 8; Lo sub, hi pixel * 8
+enemyBulletPosY         .rs 2 * 8; Lo sub, hi pixel * 8
+enemyBulletVel          .rs 8; 8 (indexes)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
@@ -154,7 +157,6 @@ ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
                               ;                 = 232         = 58 / 64
 
 PLAYERSIZE        = 6 * 4     ; player byte size
-ENEMYSIZE         = 4 * 4     ; enemy byte size
 
 ; Animation
 ANIM_MASK         = %00000001 ; Low bit to check animation
@@ -182,6 +184,7 @@ ENEMY_HEAD10      = $14
 ENEMY_HEAD11      = $15
 ENEMY_HEAD20      = $16
 ENEMY_HEAD21      = $17
+ENEMY_BULLET0     = $18
 
 ; Tiles
 STATUS_BUTT_OFF   = $62

@@ -200,6 +200,10 @@ GameLoop:
   JSR TestSpawnEnemies
   JSR UpdateEnemies
   JSR DrawScoreUpdate
+  ; Add a trailing 0 to the end of the background update buffer
+  LDA #0
+  LDX bufferUpdateIndex
+  STA backgroundBuffer, X
   RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1729,8 +1733,6 @@ AddBackgroundByte:
   LDX bufferUpdateIndex
   STA backgroundBuffer, X
   INC bufferUpdateIndex
-  LDA #0
-  STA backgroundBuffer+1, X   ; Set the next byte to 0, to end buffer
   LDX oldX                    ; Restore old X
   RTS
 
