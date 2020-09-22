@@ -1,3 +1,6 @@
+; main.asm
+;   enntry point, program layout
+
 ; Header
   .inesprg 1                  ; 1x 16KB PRG code
   .ineschr 1                  ; 1x  8KB CHR data
@@ -6,6 +9,7 @@
 
 ; Variables
   .include "vars.asm"         ; Variable definitions
+  .include "const.asm"        ; Global constnat definitions
 
 ; Banks
   .bank 0

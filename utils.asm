@@ -1,7 +1,39 @@
-; utils.asm contains utility subroutines
+; utils.asm
+;   utility subroutines
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; CONSTANTS
+
+; Rendering
+SPRITETIL         = $01       ; Sprite tile byte offset
+SPRITEATT         = $02       ; Sprite attribute byte offset
+SPRITEX           = $03       ; Sprite X byte offset
+STATUS_LO         = $60       ; lo pointer index of status bar bg row
+DEBUG_TILE        = 19        ; X position of the debug tile rendering
+SCORE_TILE        = 23        ; X position of the score places
+LOW_MASK          = %00001111
+
 ; Controllers
+CONTROLHI         = $40       ; Pointer to controller hi address
+CONTROLLO         = $16       ; Pointer to consroller lo address
+
+; Gameplay
+COLLISIONMASK     = %10000000 ; Mask for collision bit
+SCOREPLACES       = 8         ; Score places
+ENEMY_ALIVE_STATE = 10        ; Min enemy state alive
+
+; Movement
+NEG_SIGN          = %10000000 ; Indicates negative movement
+MOV_MASK          = %01111111 ; Non-sign movement
+
+; Sprite lo addresses         ;                         n * s = t
+EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8
+PBULLET0          = $20       ; Size: 4 * 4 * 4 =  64   4 * 4 = 16
+PLAYER            = $60       ; Size: 4 * 6     =  24   6 * 1 = 6
+ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
+ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
+                              ;                 = 232         = 58 / 64
+
+; SUBROUTINES
 
 ReadControllers:
   LDA #CONTROLHI              ; Setup pointers for controller 1
@@ -32,9 +64,6 @@ ReadControllers:
   BEQ .controller
   RTS
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Debug
-
 ; Sets whatever is in A to the debug value, and draws it into the score
 ;
 ; Args:
@@ -57,8 +86,7 @@ DrawDebug:
   JSR AddBackgroundByte       ; Put low half of debug in second slot
   RTS
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Background buffer
+; BACKGROUND
 
 ; Applies previously setup background buffer updates
 UpdateBackground:
@@ -114,8 +142,7 @@ AddBackgroundByte:
   LDX oldX                    ; Restore old X
   RTS
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Collision and entity interaction
+; COLLISION / ENEMY INTERACTION
 
 StorePlayerPosForSearch:
   LDA playerPosX+1
@@ -241,8 +268,7 @@ TestWorldCollision:
   LDA #1
   RTS
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Scoring
+; SCORING
 
 ; Requires X to be set up for the place to increment
 AddScore:
@@ -287,8 +313,7 @@ DrawScoreUpdate:
   BNE .drawScoreLoop          ; No, do next place
   RTS
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Sprite updates
+; SPRITE UPDATES
 
 ; Set pointer for enemy sprite
 SetPointerForEnemy:
@@ -390,8 +415,7 @@ ApplySpriteSettings:
   BNE .loop
   RTS
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Subpixel movement
+; SUBPIXEL MOVEMENT
 
 ; In preparation of SubPixelMove, find sign on velocity
 ;

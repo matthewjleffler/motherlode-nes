@@ -1,8 +1,5 @@
-; game.asm contains game lifecycle code
-;     NMI interrupt
-;     Game loop
-; Note: variables and constants defined in vars.asm
-;       tables and sprites are in tables.asm
+; game.asm
+;   game lifecycle
 
   .include "init.asm"
   .include "player.asm"
@@ -11,23 +8,16 @@
   .include "utils.asm"
   .include "math.asm"
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; NMI frame interrupt
-
-NMI:
+NMI:                          ; NMI frame interrupt
   JSR UpdateBackground
   ; Copy sprites through DMA
   LDA #$00
   STA $2003                   ; set the low byte (00) of the RAM address
-  LDA #$02
-  STA $4014                   ; set the high byte (02) of the RAM address,
-                              ; start the transfer
+  LDA #$02                    ; set the high byte (02) of the RAM address
+  STA $4014                   ; start the transfer
   JSR reenableppu
   JSR GameLoop
   RTI                         ; Return from interrupt
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Game Loop
 
 GameLoop:
   ; Clear and modify values

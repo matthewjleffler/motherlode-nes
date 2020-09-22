@@ -1,4 +1,28 @@
-; playerbullet.asm handles player bullet code
+; playerbullet.asm
+;   handles player bullet code
+
+; CONSTANTS
+
+HICLEAR           = %00111111 ; Mask to clear high bits
+BULLETCOUNT       = 4         ; Number of bullets to render
+PLAYER_BULLET_RAD = 12        ; Distance player bullets can hit at
+
+; Attributes
+BULLETNOFL        = %00000001 ; Bullet attributes with flipping and color
+BULLETFLX         = %01000001
+BULLETFLY         = %10000001
+BULLETFLXY        = %11000001
+BULLFRAME0        = $06
+BULLFRAME1        = $07
+BULLFRAME2        = $08
+BULLFRAME3        = $09
+
+; States
+BULL_OFF          = $00
+BULL_MOV          = $01
+BULL_EXP          = $02
+
+; SUBROUTINES
 
 ; Gets current bullet state, and shifts bullet info over
 ; Stores resulting state in state
@@ -225,7 +249,6 @@ DoPlayerBulletMove:
 .frame3:
   JMP AssignPlayerBulletAnim3
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Animation Frames
 
 AssignPlayerBulletAnim0:

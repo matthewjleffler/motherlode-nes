@@ -1,9 +1,9 @@
-; Nametable maps, attributes, palettes, sprite definitions
+; tables.asm
+;   Nametables, palettes, LUTs, math
 
   .org $E000                  ; Align background so the lower address is $00
 
-background:
-  ; Background is 32x30
+background:                   ; Background is 32x30
   .db $28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28
   .db $28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28
   .db $28,$0B,$28,$0A,$28,$11,$12,$1D,$1C,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$28,$1C,$0C,$18,$1B,$0E,$28 ; Status bar
@@ -48,6 +48,8 @@ attributes:
   .db %00000000, %00000000, %00000001, %00000000, %00000000, %00000000, %00000001, %00000000  ; Row 25/26/27/28
   .db %00000000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000  ; Row 29/30/31/32
 
+; COLLISION
+
 ; $E400
 collision:
   .db %00000000,%00000000,%00000000,%00000000
@@ -91,11 +93,15 @@ collisionLookupY:
 collisionLookupX:
   .db 00, 08, 016, 024
 
+; PALETTES
+
 palette:
   ;   Map 1             Map 2                               Hud
   .db $00,$22,$01,$23,  $00,$13,$01,$23,  $00,$30,$21,$0F,  $00,$20,$16,$04
   ;   Player            Player Bullets    Enemey            Enemy Bullets
   .db $3E,$06,$30,$08,  $00,$24,$23,$34,  $00,$20,$28,$1D,  $00,$02,$38,$3C
+
+; SPRITES ; TODO bring this into game logic
 
 playersprites:
   .db $80,  $00,  %00000000,  $80
@@ -105,6 +111,8 @@ playersprites:
   .db $90,  $04,  %00000000,  $80
   .db $90,  $05,  %00000000,  $88
 
+; LOOKUP TABLES
+
 ; Gets position offset by index
 positionOffset:
   .db 0,  2,  4,  6,  8, 10
@@ -113,6 +121,13 @@ positionOffset:
 spriteOffset:
   .db 0, 16, 32, 48, 64, 80
 
+; Player input patterns, matching up to move velocities below
+playerInput:
+      ; R        ; DR       ; D         ; DL
+  .db %00000001, %00000101, %00000100, %00000110
+      ; L        ; UL       ; U         ; UR
+  .db %00000010, %00001010, %00001000, %00001001
+
 ; Enemy spawn point - tile * tile width = pixel location
 enemySpawnX:
   .db 11 * TILE_WIDTH,  5 * TILE_WIDTH, 27 * TILE_WIDTH, 17 * TILE_WIDTH,  5 * TILE_WIDTH, 17 * TILE_WIDTH
@@ -120,15 +135,7 @@ enemySpawnX:
 enemySpawnY:
   .db  7 * TILE_WIDTH, 19 * TILE_WIDTH, 19 * TILE_WIDTH,  9 * TILE_WIDTH, 13 * TILE_WIDTH, 25 * TILE_WIDTH
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Velocity tables
-
-; Player input patterns, matching up to move velocities below
-playerInput:
-      ; R        ; DR       ; D         ; DL
-  .db %00000001, %00000101, %00000100, %00000110
-      ; L        ; UL       ; U         ; UR
-  .db %00000010, %00001010, %00001000, %00001001
+; VELOCITY TABLES
 
 ; Player movement velocity table (8)
 playerMoveX:
@@ -154,8 +161,7 @@ enemySlowMoveY:
   .db $00,$61,$B5,$EB,$00,$EB,$B5,$61,$00,$61,$B5,$EB,$00,$EB,$B5,$61
   .db $00,$00,$00,$00,$01,$00,$00,$00,$00,$80,$80,$80,$81,$80,$80,$80
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Math tables
+; MATH TABLES
 
 octant_adjust:
   .db %00111111               ; x+,y+,|x|>|y|

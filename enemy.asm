@@ -1,4 +1,55 @@
-; enemy.asm - contains enemy code
+; enemy.asm
+;   enemy logic
+
+; CONSTANTS
+
+; Masks
+TICKMASK          = %00000111 ; Mask for updating enemy logic
+ENEMYANIMMASK     = %00001111 ; Mask for updating animation
+FRAME_MASK        = %00000001 ; Low bit to check animation
+
+; Timing
+SPAWN_BLOCK_TICKS = 3         ; Blocked spawn retry ticks
+EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
+EN_TIME_SPAWN2    = 2         ; " " spawn2
+EN_TIME_DIE1      = 6         ; " " die1
+EN_TIME_PATH      = 20        ; How many ticks before we run atan to pathfind
+EN_TIME_HEAD      = 20         ; How many ticks in between shooting?
+
+; States
+EN_STATE_OFF      = 0         ; Off
+EN_STATE_SPAWN1   = 1         ; Spawn1
+EN_STATE_SPAWN2   = 2         ; Spawn2
+EN_STATE_DIE1     = 3         ; Die1
+EN_STATE_SKEL     = 10        ; Skeleton
+EN_STATE_HEAD     = 11        ; Head
+
+; Health values
+EN_SKEL_HEALTH    = 10
+EN_HEAD_HEALTH    = 25
+
+; Attributes
+ENEMYATT_L        = %00000010
+ENEMYATT_R        = %01000010
+
+; Tiles
+ENEMY_SPAWN10     = $0A
+ENEMY_SPAWN11     = $0B
+ENEMY_SPAWN20     = $0C
+ENEMY_SPAWN21     = $0D
+ENEMY_DIE10       = $0E
+ENEMY_DIE11       = $0F
+ENEMY_SKEL10      = $10
+ENEMY_SKEL11      = $11
+ENEMY_SKEL20      = $12
+ENEMY_SKEL21      = $13
+ENEMY_HEAD10      = $14
+ENEMY_HEAD11      = $15
+ENEMY_HEAD20      = $16
+ENEMY_HEAD21      = $17
+ENEMY_BULLET0     = $18
+
+; SUBROUTINES
 
 ; A will be state, 0 is alive, 1 is dead
 TestEnemyHealth:
@@ -15,7 +66,7 @@ TestEnemyHealth:
 
 TestSpawnEnemies:
   LDA animTick
-  AND #BULLETSHOOTMASK        ; Count every 8 ticks
+  AND #TICKMASK               ; Count every 8 ticks
   BEQ .countTick              ; Are we on 0?
   RTS                         ; No
 .countTick:
@@ -383,7 +434,7 @@ UpdateEnemyLoop:
   CLC
   ADC enemyCount              ; Offset by anim
   LSR A                       ; Divide by 2
-  AND #ANIM_MASK
+  AND #FRAME_MASK
   BEQ .skelFrame1
   JSR DrawSkeletonFrame2
   JMP .skelUpdate
@@ -418,7 +469,7 @@ UpdateEnemyLoop:
   CLC
   ADC enemyCount              ; Offset by anim
   LSR A                       ; Divide by 2
-  AND #ANIM_MASK
+  AND #FRAME_MASK
   BEQ .headFrame1
   JSR DrawHeadFrame2
   JMP .headUpdate

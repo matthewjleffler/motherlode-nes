@@ -1,4 +1,40 @@
-; player.asm has player logic
+; player.asm
+;   player logic
+
+; CONSTANTS
+
+; Input
+BUTTONA           = %10000000
+BUTTONB           = %01000000
+BUTTONSEL         = %00100000
+BUTTONSTA         = %00010000
+BUTTONU           = %00001000
+BUTTOND           = %00000100
+BUTTONL           = %00000010
+BUTTONR           = %00000001
+MOVE_INPUT        = %00001111
+MASK_UD           = %00001100
+MASK_LR           = %00000011
+REMOVE_UD         = %11110011
+REMOVE_LR         = %11111100
+
+; Gameplay
+BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
+DODGE_ON          = %10000000 ; Whether or not the dodge bit is set
+DODGE_TIME_MASK   = %01111111 ; The time bits of dodge
+DODGE_TIME        = 7         ;  7/60 of a second
+DODGE_COOLDOWN    = 25        ; 25/60  of a second
+
+; Status Tiles
+STATUS_BUTT_OFF   = $62
+STATUS_BUTT_ON    = $63
+STATUS_HEART_OFF  = $60
+STATUS_HEART_ON   = $61
+
+; Arguments
+playerMoveDir     = arg9
+
+; SUBROUTINES
 
 TestPlayerMove:
   ; Check Dodge first

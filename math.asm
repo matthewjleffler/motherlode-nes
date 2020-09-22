@@ -1,4 +1,15 @@
-; math.asm contains various helpfum math subroutines
+; math.asm
+;   various helpfum math subroutines
+
+; CONSTANTS
+
+; Atan2 / Math
+octant            = arg4
+angle             = arg4      ; Reuse arg4 after finishing with octant
+sum               = arg4
+distance          = arg9
+
+; SUBROUTINES
 
 ; Returns a random 8-bit number in A (0-255), clobbers arg0
 RNG:

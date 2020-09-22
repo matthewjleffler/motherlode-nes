@@ -1,6 +1,14 @@
-; init.asm contains init and reset code
+; init.asm
+;   init and reset code
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; CONSTANTS
+
+PLAYER_SPAWN_X    = $80
+PLAYER_SPAWN_Y    = $80
+PLAYERSIZE        = 6 * 4     ; player byte size
+
+; SUBROUTINES
+
 ; RESET and init
 
 vblankwait:                   ; VBLANK reset wait
