@@ -115,11 +115,15 @@ playersprites:
 
 ; Gets position offset by index
 positionOffset:
-  .db 0,  2,  4,  6,  8, 10
+  .db 0,  2,  4,  6,  8, 10, 12, 14
 
 ; Gets byte offset for 4x4 sprites by index
 spriteOffset:
   .db 0, 16, 32, 48, 64, 80
+
+; Gets byte offset for 1x1 sprites by index
+spriteOffset1:
+  .db 0,  4,  8, 12, 16, 20, 24, 28
 
 ; Player input patterns, matching up to move velocities below
 playerInput:

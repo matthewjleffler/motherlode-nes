@@ -69,4 +69,4 @@ enemyPosY               .rs 2 * 6 ; Lo sub, hi pixel * 6
 enemyVel                .rs 6 ; 6 (indexes)
 enemyBulletPosX         .rs 2 * 8; Lo sub, hi pixel * 8
 enemyBulletPosY         .rs 2 * 8; Lo sub, hi pixel * 8
-enemyBulletVel          .rs 8; 8 (indexes)
+enemyBulletVel          .rs 8 ; 8 (indexes)

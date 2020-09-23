@@ -4,7 +4,7 @@
 ; CONSTANTS
 
 HICLEAR           = %00111111 ; Mask to clear high bits
-BULLETCOUNT       = 4         ; Number of bullets to render
+PBULLETCOUNT      = 4         ; Number of bullets to render
 PLAYER_BULLET_RAD = 12        ; Distance player bullets can hit at
 
 ; Attributes
@@ -103,7 +103,7 @@ TestPlayerShootBullet:
 .nextBullet:
   INC bulletCount             ; Increment counter
   LDX bulletCount
-  CPX #BULLETCOUNT
+  CPX #PBULLETCOUNT
   BNE .findFreeBullet         ; If not 0, check next bullet, or cycle the state
   RTS
 
@@ -146,7 +146,7 @@ UpdatePlayerBullets:
 .incrementLoop:               ; Bullet update done
   INC bulletCount
   LDA bulletCount
-  CMP #BULLETCOUNT            ; Are we done with the loop?
+  CMP #PBULLETCOUNT           ; Are we done with the loop?
   BNE .updateLoop
   RTS
 
@@ -249,7 +249,7 @@ DoPlayerBulletMove:
 .frame3:
   JMP AssignPlayerBulletAnim3
 
-; Animation Frames
+; ANIMATION FRAME
 
 AssignPlayerBulletAnim0:
   LDA #BULLFRAME0             ; Assign frame 0 to all tiles

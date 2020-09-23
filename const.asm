@@ -16,6 +16,19 @@ STATEMASK         = %00000011 ; Mask for lower two bits
 ENEMYCOUNT        = 6         ; Max number of enemies
 SPAWN_MIN_TICKS   = 15        ; Min spawn ticks between spawns
 
+; Sprite addresses
+SPRITETIL         = $01       ; Sprite tile byte offset
+SPRITEATT         = $02       ; Sprite attribute byte offset
+SPRITEX           = $03       ; Sprite X byte offset
+
+; Sprite lo addresses         ;                         n * s = t
+EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8
+PBULLET0          = $20       ; Size: 4 * 4 * 4 =  64   4 * 4 = 16
+PLAYER            = $60       ; Size: 4 * 6     =  24   6 * 1 = 6
+ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
+ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
+                              ;                 = 232         = 58 / 64
+
 ; ARGUMENTS
 
 ; Positional

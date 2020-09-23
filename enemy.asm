@@ -47,7 +47,6 @@ ENEMY_HEAD10      = $14
 ENEMY_HEAD11      = $15
 ENEMY_HEAD20      = $16
 ENEMY_HEAD21      = $17
-ENEMY_BULLET0     = $18
 
 ; SUBROUTINES
 
@@ -484,9 +483,15 @@ UpdateEnemyLoop:
 .headShoot:
   LDA enemyTick, X            ; Did our shooting tick run out?
   BNE .headMove               ; No - just move
-  LDA #EN_TIME_HEAD
+  LDA #EN_TIME_HEAD           ; Yes, reset the timer
   STA enemyTick, X
-  ; TODO shoot a bullet
+  LDY positionOffset, X
+  LDA enemyPosX+1, Y          ; Set up position X for spawning bullet
+  STA posX
+  LDA enemyPosY+1, Y          ; Set up position Y for spawning bullet
+  STA posY
+  JSR SpawnEnemyBullet        ; Try to spawn bullet
+  LDX enemyCount              ; Return enemyCount to X
   JSR RNG
   JSR Divide4
   BNE .still

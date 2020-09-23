@@ -4,9 +4,6 @@
 ; CONSTANTS
 
 ; Rendering
-SPRITETIL         = $01       ; Sprite tile byte offset
-SPRITEATT         = $02       ; Sprite attribute byte offset
-SPRITEX           = $03       ; Sprite X byte offset
 STATUS_LO         = $60       ; lo pointer index of status bar bg row
 DEBUG_TILE        = 19        ; X position of the debug tile rendering
 SCORE_TILE        = 23        ; X position of the score places
@@ -24,14 +21,6 @@ ENEMY_ALIVE_STATE = 10        ; Min enemy state alive
 ; Movement
 NEG_SIGN          = %10000000 ; Indicates negative movement
 MOV_MASK          = %01111111 ; Non-sign movement
-
-; Sprite lo addresses         ;                         n * s = t
-EBULLET0          = $00       ; Size: 4 * 8     =  32   8 * 1 = 8
-PBULLET0          = $20       ; Size: 4 * 4 * 4 =  64   4 * 4 = 16
-PLAYER            = $60       ; Size: 4 * 6     =  24   6 * 1 = 6
-ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
-ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
-                              ;                 = 232         = 58 / 64
 
 ; SUBROUTINES
 

@@ -5,6 +5,7 @@
   .include "player.asm"
   .include "playerbullet.asm"
   .include "enemy.asm"
+  .include "enemybullet.asm"
   .include "utils.asm"
   .include "math.asm"
 
@@ -35,6 +36,7 @@ GameLoop:
   JSR UpdatePlayerBullets
   JSR TestSpawnEnemies
   JSR UpdateEnemies
+  JSR UpdateEnemyBullets
   JSR DrawScoreUpdate
   ; Add a trailing 0 to the end of the background update buffer
   LDA #0
