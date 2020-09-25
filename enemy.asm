@@ -274,7 +274,7 @@ MoveEnemy:
   STA velLo                   ; Velocity Lo
   LDA enemySlowMoveY+16, Y    ; 16 directions
   STA velHi                   ; Velocity Hi
-  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
+  JSR StoreVelocitySign       ; Store the sign, for subpixel move and dodging
 ; Do Y movement
   LDA #HIGH(enemyPosY)        ; Set pointerSub for player Y
   STA pointerSubHi
@@ -319,9 +319,9 @@ MoveEnemy:
   STA velLo                   ; Velocity Lo
   LDA enemySlowMoveX+16, Y    ; 16 directions
   STA velHi                   ; Velocity Hi
-  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
+  JSR StoreVelocitySign       ; Store the sign, for subpixel move and dodging
 ; Do X movement
-  LDA #HIGH(enemyPosX)       ; Set pointerSub for player subpixel X
+  LDA #HIGH(enemyPosX)        ; Set pointerSub for player subpixel X
   STA pointerSubHi
   LDA #LOW(enemyPosX)
   CLC

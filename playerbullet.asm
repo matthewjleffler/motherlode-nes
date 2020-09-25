@@ -162,7 +162,7 @@ DoPlayerBulletMove:
   STA velLo
   LDA playerBulletMoveY+32, Y ; Velocity Hi
   STA velHi
-  JSR StoreVeloctySign
+  JSR StoreVelocitySign
   LDA #HIGH(playerBulletPosY) ; Set up pointer for bullet y pos
   STA pointerSubHi
   LDA #LOW(playerBulletPosY)
@@ -177,7 +177,7 @@ DoPlayerBulletMove:
   STA velLo
   LDA playerBulletMoveX+32, Y ; Velocity Hi
   STA velHi
-  JSR StoreVeloctySign
+  JSR StoreVelocitySign
   LDA #HIGH(playerBulletPosX) ; Set up pointer for bullet x pos
   STA pointerSubHi
   LDA #LOW(playerBulletPosX)
@@ -199,6 +199,7 @@ DoPlayerBulletMove:
   CMP #$FF                    ; Sentinel index, Nothing nearby
   BEQ .worldCollision
   LDA distance                ; The distance stored by the search
+  CLC
   CMP #PLAYER_BULLET_RAD      ; Is it less than the player hit distance?
   BCC .hitEnemy               ; Go to hit enemy routine
 .worldCollision:

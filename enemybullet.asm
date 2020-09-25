@@ -7,6 +7,7 @@ STATEMASK         = %00000011 ; Low bits for the state of a bullet
 HICLEAR           = %00111111 ; Clear the high state off
 EBULLETCOUNT      = 8         ; Number of bullets to render
 EBULLET_ATTRIB    = %00000011 ; Bullet attribute
+EBULLET_RAD       = 6         ; Distance player can be hit at
 
 ; States
 BULL_OFF          = 0
@@ -89,6 +90,23 @@ SpawnEnemyBullet:
   BNE .loop                   ; No - loop
   RTS                         ; Finished
 
+; Bullet is dead, hide it, then set state to off
+HideEnemyBullet:
+  LDX bulletCount
+  LDA #BULL_OFF
+  STA state
+  JSR SetEnemyBulletState
+  LDA #SPRITEHI
+  STA pointerHi
+  LDA #EBULLET0
+  CLC
+  ADC spriteOffset1, X
+  STA pointerLo
+  LDY #0
+  LDA #$FF                    ; Store offscreen in sprite Y
+  STA [pointerLo], Y
+  RTS
+
 UpdateEnemyBullets:
   LDX #0
   STX bulletCount             ; Clear X and bullet loop
@@ -107,9 +125,60 @@ UpdateEnemyBullets:
   CPX #EBULLETCOUNT           ; Did we loop through all bullets
   BNE .loop                   ; No - loop
   RTS                         ; Finished
-
 .moveBullet:
-  ; TODO actually move bullet
+  ; Move pixel Y
+  LDX bulletCount             ; Store current bullet in X
+  LDY enemyBulletVel, X       ; Store enemy velocity index in Y
+  LDA enemyBulletMoveY, Y     ; Velocity lo
+  STA velLo
+  LDA enemyBulletMoveY+32, Y  ; Velocity hi
+  STA velHi
+  JSR StoreVelocitySign       ; Set up pointer for bullet Y pos
+  LDA #HIGH(enemyBulletPosY)
+  STA pointerSubHi
+  LDA #LOW(enemyBulletPosY)
+  CLC
+  ADC positionOffset, X       ; Move the pointer forward  to the right index
+  STA pointerSubLo
+  JSR SubPixelMove            ; Move the Y position
+  ; Move pixel X
+  LDY enemyBulletVel, X       ; Load bullet velocity index in Y
+  LDA enemyBulletMoveX, Y     ; Velocity Lo
+  STA velLo
+  LDA enemyBulletMoveX+32, Y  ; Velocity hi
+  STA velHi
+  JSR StoreVelocitySign
+  LDA #HIGH(enemyBulletPosX)  ; Set up pointer for bullet x pos
+  STA pointerSubHi
+  LDA #LOW(enemyBulletPosX)
+  CLC
+  ADC positionOffset, X       ; Move the pointer forward to the right spot
+  STA pointerSubLo
+  JSR SubPixelMove            ; Move the X position
+  LDX bulletCount
+  LDY positionOffset, X
+  LDA enemyBulletPosX+1, Y
+  STA posX
+  LDA enemyBulletPosY+1, Y
+  STA posY
+  JSR StorePlayerPosForSearch ; Store player pos for atan2, posX and posY are set up
+  JSR ManhattanDistance
+  CLC
+  CMP #EBULLET_RAD
+  BCC .hitPlayer
+; World Collision
+  LDA #0
+  STA tilesW
+  STA tilesH
+  JSR TestWorldCollision
+  CMP #1                      ; We've collided
+  BEQ .collision
+  JMP .animateBullet
+.hitPlayer:
+.collision:
+  JSR HideEnemyBullet
+  RTS
+.animateBullet:
   ; TODO animate bullet
   LDX bulletCount             ; Make sure bullet index is in X
   LDA #SPRITEHI

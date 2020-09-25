@@ -411,7 +411,7 @@ ApplySpriteSettings:
 ; Args:
 ;   velHi                     - hi velocity
 ; Sets velSign to hi velocity sign
-StoreVeloctySign:
+StoreVelocitySign:
   LDA velHi                   ; Check hi velocity for sign
   AND #NEG_SIGN
   STA velSign                 ; Store sign

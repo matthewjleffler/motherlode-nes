@@ -124,7 +124,7 @@ TestPlayerMove:
   STA velLo                   ; Velocity Lo
   LDA playerMoveY+8, X        ; 8 directions
   STA velHi                   ; Velocity Hi
-  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
+  JSR StoreVelocitySign       ; Store the sign, for subpixel move and dodging
   LDA playerDodge
   AND #DODGE_ON               ; Check dodging
   BEQ .moveY                  ; Not dodging if 0
@@ -169,7 +169,7 @@ TestPlayerMove:
   STA velLo                   ; Velocity Lo
   LDA playerMoveX+8, X        ; 8 directions
   STA velHi                   ; Velocity Hi
-  JSR StoreVeloctySign        ; Store the sign, for subpixel move and dodging
+  JSR StoreVelocitySign       ; Store the sign, for subpixel move and dodging
   ; Check dodging
   LDA playerDodge
   AND #DODGE_ON
