@@ -15,6 +15,7 @@ BULL_MOV          = 1
 
 ; Tiles
 ENEMY_BULLET0     = $18
+ENEMY_BULLET1     = $19
 
 ; SUBROUTINES
 
@@ -199,10 +200,20 @@ UpdateEnemyBullets:
   SBC #TILE_HALF              ; Offset by half tile, bullet pos is center
   LDY #SPRITEX
   STA [pointerLo], Y          ; Store the position
-  LDA #ENEMY_BULLET0          ; TODO animate, TODO set sprite
-  LDY #SPRITETIL
-  STA [pointerLo], Y          ; Save the sprite position
   LDA #EBULLET_ATTRIB
   LDY #SPRITEATT
   STA [pointerLo], Y
+; Animate Bullet
+  LDA enemyAnim               ; Load enemy anim
+  CLC
+  ADC bulletCount             ; Offset by anim
+  AND #FRAME_MASK
+  BEQ .frame2
+  LDA #ENEMY_BULLET0
+  JMP .drawFrame
+.frame2:
+  LDA #ENEMY_BULLET1
+.drawFrame:
+  LDY #SPRITETIL
+  STA [pointerLo], Y          ; Save the sprite position
   RTS
