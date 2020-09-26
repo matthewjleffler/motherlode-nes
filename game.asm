@@ -124,7 +124,9 @@ NMI:                          ; NMI frame interrupt
   JSR AddBackgroundByte
   LDA #STATUS_BUTT_ON
   JSR AddBackgroundByte
-; TODO clear health bar
+  LDA #PLAYER_HEALTH
+  STA playerHealth            ; Set player health
+  JSR DrawPlayerHealth
   RTS
 
 .gameLoop:
@@ -137,15 +139,14 @@ NMI:                          ; NMI frame interrupt
   JSR DarkenPalette
   RTS
 .testPlayerHealth:
-  LDA buttons1fresh           ; TODO actual player health
-  AND #BUTTONSEL
-  CMP #BUTTONSEL
-  BNE .runGameLoop
-  LDA #GAME_KILL
+  LDA playerHealth            ; Check health value
+  BNE .runGameLoop            ; Above 0, continue game
+  LDA #GAME_KILL              ; Equal to 0, kill player
   STA gamestate
   JSR SetGameState
   RTS
 .runGameLoop:
+  JSR CountPlayerTime
   JSR TestPlayerMove
   JSR UpdatePlayerSprites
   JSR TestPlayerSpecial

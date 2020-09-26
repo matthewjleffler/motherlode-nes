@@ -50,6 +50,8 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 11 - ??
                               ; 88776655 44332211
 playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
+playerHealth            .rs 1 ; Player health
+playerDamageCooldown    .rs 1 ; Ticks for player damage cooldown
 
   .rsset $0100                ; Background update buffer here
 backgroundBuffer        .rs 160

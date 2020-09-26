@@ -22,6 +22,7 @@ COPYLEN           = 19        ; Copyright coverup len
 SCOREX            = 9
 SCOREY            = 24
 SCORELEN          = 6         ; SCORE: text 6 tiles
+HEALTHX           = 5
 
 ; Controllers
 CONTROLHI         = $40       ; Pointer to controller hi address
@@ -35,6 +36,10 @@ ENEMY_ALIVE_STATE = 10        ; Min enemy state alive
 ; Movement
 NEG_SIGN          = %10000000 ; Indicates negative movement
 MOV_MASK          = %01111111 ; Non-sign movement
+
+; Tiles
+STATUS_HEART_OFF  = $60
+STATUS_HEART_ON   = $61
 
 ; SUBROUTINES
 
@@ -189,6 +194,30 @@ SetGameState:
   JSR AddBackgroundByte
   CPX #0                      ; Did we draw the last place?
   BNE .drawScoreLoop          ; No, do next place
+  RTS
+
+DrawPlayerHealth:
+  LDA #PLAYER_HEALTH
+  STA len
+  LDA #STATUS_Y
+  STA startY
+  LDA #HEALTHX
+  STA startX
+  JSR StartBackgroundUpdate
+  LDX #0
+.loopDrawHealth:
+  TXA
+  CMP playerHealth
+  BCC .drawHeartOn
+  LDA #STATUS_HEART_OFF
+  JMP .addByte
+.drawHeartOn:
+  LDA #STATUS_HEART_ON
+.addByte:
+  JSR AddBackgroundByte
+  INX
+  CPX #PLAYER_HEALTH
+  BNE .loopDrawHealth
   RTS
 
 ; Sets whatever is in A to the debug value, and draws it into the score

@@ -176,11 +176,11 @@ UpdateEnemyBullets:
   BEQ .collision
   JMP .animateBullet
 .hitPlayer:
+  JSR PlayerTakeDamage
 .collision:
   JSR HideEnemyBullet
   RTS
 .animateBullet:
-  ; TODO animate bullet
   LDX bulletCount             ; Make sure bullet index is in X
   LDA #SPRITEHI
   STA pointerHi

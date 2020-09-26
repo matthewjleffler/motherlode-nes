@@ -15,13 +15,12 @@ BULLETSHOOTMASK   = %00000111 ; Mask for shooting bullet tick
 DODGE_ON          = %10000000 ; Whether or not the dodge bit is set
 DODGE_TIME_MASK   = %01111111 ; The time bits of dodge
 DODGE_TIME        = 7         ;  7/60 of a second
-DODGE_COOLDOWN    = 25        ; 25/60  of a second
+DODGE_COOLDOWN    = 25        ; 25/60 of a second
+DAMAGE_COOLDOWN   = 20        ; 20/60 of a second
 
 ; Status Tiles
 STATUS_BUTT_OFF   = $62
 STATUS_BUTT_ON    = $63
-STATUS_HEART_OFF  = $60
-STATUS_HEART_ON   = $61
 
 ; Arguments
 playerMoveDir     = arg9
@@ -38,6 +37,13 @@ PL_FRAME5         = $05
 PL_ATTRIB         = %00000000
 
 ; SUBROUTINES
+
+CountPlayerTime:
+  LDA playerDamageCooldown    ; Check if we need to count the cooldown
+  BEQ .done                   ; No - it's 0
+  DEC playerDamageCooldown    ; Yes, count down
+.done:
+  RTS
 
 TestPlayerMove:
   ; Check Dodge first
@@ -287,4 +293,17 @@ ApplyPlayerSpriteSettings:
   INX
   CPX #$06                    ; Check whether we're done with the loop
   BNE .loop
+  RTS
+
+PlayerTakeDamage:
+  LDA playerDodge
+  AND #DODGE_ON
+  BNE .done                   ; If the value isn't 0, dodging is on ignore damage
+  LDA playerDamageCooldown
+  BNE .done                   ; If the player damage cooldown isn't 0, ignore
+  LDA #DAMAGE_COOLDOWN
+  STA playerDamageCooldown    ; Set the damage cooldown
+  DEC playerHealth            ; Take damage
+  JSR DrawPlayerHealth
+.done:
   RTS

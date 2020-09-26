@@ -24,6 +24,7 @@ BUTTONR           = %00000001
 STATEMASK         = %00000011 ; Mask for lower two bits
 ENEMYCOUNT        = 6         ; Max number of enemies
 SPAWN_MIN_TICKS   = 15        ; Min spawn ticks between spawns
+PLAYER_HEALTH     = 3         ; Max player health
 
 ; Sprite addresses
 SPRITETIL         = $01       ; Sprite tile byte offset
