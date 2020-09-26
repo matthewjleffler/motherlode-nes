@@ -8,6 +8,8 @@ STATUS_LO         = $60       ; lo pointer index of status bar bg row
 DEBUG_TILE        = 19        ; X position of the debug tile rendering
 SCORE_TILE        = 23        ; X position of the score places
 LOW_MASK          = %00001111
+BG_TABLE0         = $20
+BG_TABLE1         = $24
 
 ; Controllers
 CONTROLHI         = $40       ; Pointer to controller hi address
@@ -91,7 +93,13 @@ UpdateBackground:
 .startDraw:
   INY                         ; Increment buffer
   LDA $2002                   ; Read PPU status to reset the high/low latch
-  LDA #BG_HI
+  LDA nametable               ; Check which table we're writing to
+  BNE .table1                 ; We're on table 1
+  LDA #BG_TABLE0              ; Table 0
+  JMP .setupBuffer
+.table1:
+  LDA #BG_TABLE1
+.setupBuffer:
   STA $2006                   ; Store hi byte of bg index
   LDA backgroundBuffer, Y     ; X index of the status bar to draw at
   CLC

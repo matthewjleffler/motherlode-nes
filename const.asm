@@ -9,7 +9,6 @@ TILE_HALF         = 4
 TILE_WIDTH        = 8
 TILES_PX_3        = 3 * TILE_WIDTH ; 3 tiles high in pixels
 TILES_PX_2        = 2 * TILE_WIDTH ; 2 tiles high in pixels
-BG_HI             = $20       ; hi pointer to background table addresses
 
 ; Gameplay
 STATEMASK         = %00000011 ; Mask for lower two bits

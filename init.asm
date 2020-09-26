@@ -6,6 +6,7 @@
 PLAYER_SPAWN_X    = $80
 PLAYER_SPAWN_Y    = $80
 PLAYERSIZE        = 6 * 4     ; player byte size
+BG_HI             = $20       ; hi pointer to background table addresses
 
 ; SUBROUTINES
 
@@ -19,6 +20,7 @@ vblankwait:                   ; VBLANK reset wait
 reenableppu:
   LDA #%10010000              ; enable NMI, sprites from Pattern Table 0,
                               ; background from Pattern Table 1
+  ORA nametable               ; Inclusive or with nametable variable
   STA $2000
   LDA #%00011110              ; enable sprites, enable background, no clipping
                               ; on left side
@@ -107,17 +109,15 @@ LoadBackground:
   LDY #$00
 .loopX:
 .loopY:
-  LDA [pointerLo], y          ; copy one background byte from address in
-                              ; pointer plus Y
+  LDA [pointerLo], y          ; copy one background byte from address in + Y
   STA $2007                   ; this runs 256 * 4 times
   INY                         ; inside loop counter
   CPY #$00
   BNE .loopY                  ; run the inside loop 256 times before continuing
   ; End inner loop
-  INC pointerHi               ; low byte went 0 to 256, so high byte needs to be
-                              ; changed now
+  INC pointerHi               ; low byte wrapped, increment hi byte
   INX
-  CPX #$04
+  CPX #$08                    ; 4 X loops, covers nametable 1 and 2
   BNE .loopX                  ; run the outside loop 256 times before continuing
   ; End outer loop
 
