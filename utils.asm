@@ -15,6 +15,13 @@ PALETTE_SIZE      = $20
 PALETTE_WIDTH     = $10       ; Palette is 16 colors wide
 PALETTE_TOP       = $30       ; Top row of color, for lightening
 CLEAR_TILE        = $28       ; Empty bg tile
+PAUSELEN          = 5         ; PAUSE text 5 tiles
+COPYX             = 3
+COPYY             = 25
+COPYLEN           = 19        ; Copyright coverup len
+SCOREX            = 9
+SCOREY            = 24
+SCORELEN          = 6         ; SCORE: text 6 tiles
 
 ; Controllers
 CONTROLHI         = $40       ; Pointer to controller hi address
@@ -87,6 +94,7 @@ SetGameState:
   RTS
 
 .stateRun:
+  ; TODO clear hud - button states, score
   LDA #0
   STA nametable               ; Set nametable to game
   LDA #PAUSELEN               ; Clear Pause text
@@ -103,6 +111,10 @@ SetGameState:
   INX
   CPX #PAUSELEN
   BNE .loopClearPause
+; Clear hud
+  LDA #1
+  STA scoreChanged
+  JSR DrawScoreUpdate
   RTS
 
 .statePause:
@@ -125,10 +137,58 @@ SetGameState:
   RTS
 
 .stateKill:
-  ; TODO hide all sprites
+  LDA #$FF                    ; Clear value
+  LDX #0
+.loopClearSprites:
+  STA $0200, X
+  INX
+  BNE .loopClearSprites       ; Loop until we go back to 0
   LDA #1
   STA nametable
-  ; TODO draw hiscore and return to game text
+; Clear copyright text
+  LDA #COPYLEN
+  STA len
+  LDA #COPYX
+  STA startX
+  LDA #COPYY
+  STA startY
+  JSR StartBackgroundUpdate
+  LDA #CLEAR_TILE
+  LDX #0
+.loopClearCopy
+  JSR AddBackgroundByte
+  INX
+  CPX #COPYLEN
+  BNE .loopClearCopy
+; Draw score text
+  LDA #SCORELEN
+  STA len
+  LDA #SCOREX
+  STA startX
+  LDA #SCOREY
+  STA startY
+  JSR StartBackgroundUpdate
+  LDX #0
+.loopScoreText:
+  LDA scoreKillText, X
+  JSR AddBackgroundByte
+  INX
+  CPX #SCORELEN
+  BNE .loopScoreText
+; Draw score value
+  LDX #SCOREPLACES            ; We're drawing all score places
+  STX len
+  LDA #SCOREX + SCORELEN + 1  ; We start drawing at score place
+  STA startX
+  LDA #SCOREY
+  STA startY
+  JSR StartBackgroundUpdate
+.drawScoreLoop:
+  DEX                         ; Decrement X
+  LDA score, X                ; Draw score place into buffer, reversing order
+  JSR AddBackgroundByte
+  CPX #0                      ; Did we draw the last place?
+  BNE .drawScoreLoop          ; No, do next place
   RTS
 
 ; Sets whatever is in A to the debug value, and draws it into the score

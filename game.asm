@@ -13,6 +13,9 @@
 
 PLAYER_SPAWN_X    = $80
 PLAYER_SPAWN_Y    = $80
+STARTX            = 11
+STARTY            = 20
+STARTLEN          = 11        ; PRESS START text 11 tiles
 
 ; SUBROUTINES
 
@@ -37,24 +40,19 @@ NMI:                          ; NMI frame interrupt
   LDA gamestate
   CMP #GAME_PAUSE
   BEQ .statePause
-  CMP #GAME_KILL
-  BEQ .stateKill
   CMP #GAME_RUN
   BEQ .stateRun
-; title
+; title / kill
   JSR .titleLoop
-  JMP .endLoop
-.stateKill:
-  ; TODO content
-  JMP .endLoop
+  JMP .endNMI
 .stateRun:
   JSR .gameLoop
-  JMP .endLoop
+  JMP .endNMI
 .statePause:
   JSR .pauseLoop
-  JMP .endLoop
+  JMP .endNMI
 
-.endLoop:
+.endNMI:
   LDA #0                      ; Add a trailing 0 to the end of the background
   LDX bufferUpdateIndex       ;  update buffer
   STA backgroundBuffer, X
@@ -64,6 +62,21 @@ NMI:                          ; NMI frame interrupt
   JSR .testStartPressed
   CMP #1
   BEQ .startGame
+  ; TODO blink press start
+  LDA #STARTX
+  STA startX
+  LDA #STARTY
+  STA startY
+  LDA #STARTLEN
+  STA len
+  JSR StartBackgroundUpdate
+  LDX #0
+.drawStartText:
+  LDA pressStartText, X
+  JSR AddBackgroundByte
+  INX
+  CPX #STARTLEN
+  BNE .drawStartText
   RTS
 
 .startGame:
@@ -75,19 +88,62 @@ NMI:                          ; NMI frame interrupt
   STA playerPosY+1
   LDA #SPAWN_MIN_TICKS        ; Set up initial enemy spawn timer
   STA enemySpawnTimer
+  LDA #0
+  STA playerBulletStates      ; Clear player bullet states
+  STA enemyBulletStates       ; Clear enemy bullet states lo
+  STA enemyBulletStates+1     ; Clear enemy bullet states hi
+  STA playerDodge             ; Clear player dodge
+  LDX #0
+.loopClearEnemy:
+  STA enemyState, X
+  INX
+  CPX #ENEMYCOUNT
+  BNE .loopClearEnemy
+  LDX #0
+.loopClearScore:
+  STA score, X
+  INX
+  CPX #SCOREPLACES
+  BNE .loopClearScore
+; Set actual game state
   LDA #GAME_RUN
   STA gamestate
   JSR SetGameState
+; Now that nametable is set, do some clearing
+; Clear buttons
+  LDA #3
+  STA len
+  LDA #STATUS_Y
+  STA startY
+  LDA #1
+  STA startX
+  JSR StartBackgroundUpdate
+  LDA #STATUS_BUTT_ON
+  JSR AddBackgroundByte
+  LDA #CLEAR_TILE
+  JSR AddBackgroundByte
+  LDA #STATUS_BUTT_ON
+  JSR AddBackgroundByte
+; TODO clear health bar
   RTS
 
 .gameLoop:
   JSR .testStartPressed
   CMP #1
-  BNE .runGameLoop
+  BNE .testPlayerHealth
   LDA #GAME_PAUSE
   STA gamestate
   JSR SetGameState
   JSR DarkenPalette
+  RTS
+.testPlayerHealth:
+  LDA buttons1fresh           ; TODO actual player health
+  AND #BUTTONSEL
+  CMP #BUTTONSEL
+  BNE .runGameLoop
+  LDA #GAME_KILL
+  STA gamestate
+  JSR SetGameState
   RTS
 .runGameLoop:
   JSR TestPlayerMove

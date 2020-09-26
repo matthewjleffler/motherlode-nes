@@ -222,6 +222,9 @@ TestPlayerSpecial:
   BEQ .doPlayerSpecial
   RTS
 .doPlayerSpecial:
+  ; LDA #GAME_KILL
+  ; STA gamestate
+  ; JSR SetGameState
   ; INC debug
   ; LDA debug
   ; JSR DrawDebug
