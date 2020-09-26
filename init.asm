@@ -80,20 +80,6 @@ LoadSprites:
   INX
   BNE .loop                   ; Add until we loop back to 0
 
-; TODO move this to gameplay code
-AssignPlayerSprites:
-  LDA #SPRITEHI               ; setup player sprite pointer
-  STA pointerHi
-  LDA #PLAYER
-  STA pointerLo
-  LDY #$00
-.loop:
-  LDA playersprites, Y
-  STA [pointerLo], Y
-  INY
-  CPY #PLAYERSIZE             ; Loop until we have finished all the player bytes
-  BNE .loop
-
 LoadBackground:
   LDA $2002                   ; Read PPU status to reset the high/low latch
   LDA #BG_HI

@@ -34,6 +34,17 @@ STATUS_HEART_ON   = $61
 ; Arguments
 playerMoveDir     = arg9
 
+; Frames
+PL_FRAME0         = $00
+PL_FRAME1         = $01
+PL_FRAME2         = $02
+PL_FRAME3         = $03
+PL_FRAME4         = $04
+PL_FRAME5         = $05
+
+; Attributes
+PL_ATTRIB         = %00000000
+
 ; SUBROUTINES
 
 TestPlayerMove:
@@ -222,11 +233,15 @@ TestPlayerSpecial:
   ; JSR AddScore
   RTS
 
-UpdatePlayerSprites:
-  LDA #SPRITEHI               ; Sprite hi bites
+SetPointerForPlayer:
+  LDA #SPRITEHI
   STA pointerHi
-  LDA #PLAYER                 ; Player low bytes
+  LDA #PLAYER
   STA pointerLo
+  RTS
+
+UpdatePlayerSprites:
+  JSR SetPointerForPlayer
   LDA playerPosX+1
   SEC
   SBC #TILE_WIDTH             ; Offset X left by one tile to left edge
@@ -238,4 +253,39 @@ UpdatePlayerSprites:
   LDA #03                     ; Player is 3 tiles high
   STA tilesH                  ; Store in sprite height
   JSR UpdateSpriteLayout      ; Update sprites now
+  JSR SetPointerForPlayer
+  JSR AssignPlayerFrame1
+  RTS
+
+AssignPlayerFrame1:
+  LDX #0
+.loop:
+  TXA
+  STA spriteFrame, X
+  LDA #PL_ATTRIB
+  STA spriteAttr, X
+  INX
+  CPX #06                     ; Finished writing player
+  BNE .loop
+  JSR ApplyPlayerSpriteSettings
+  RTS
+
+; Takes pre-filled frames and attributes and applies them to the
+; current sprite pointer
+ApplyPlayerSpriteSettings:
+  LDX #0                      ; Starts our loop at 0
+.loop:
+  LDA spriteFrame, X
+  LDY #SPRITETIL              ; Assign tile
+  STA [pointerLo], Y
+  LDY #SPRITEATT              ; Assign attributes
+  LDA spriteAttr, X
+  STA [pointerLo], Y
+  LDA pointerLo               ; Increment pointer by 4 bytes to next sprite
+  CLC
+  ADC #$04
+  STA pointerLo
+  INX
+  CPX #$06                    ; Check whether we're done with the loop
+  BNE .loop
   RTS
