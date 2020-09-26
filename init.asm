@@ -116,6 +116,8 @@ InitializeVariables:
   STA seed                    ; TODO init seed with player input
   LDA #SPAWN_MIN_TICKS
   STA enemySpawnTimer
+  LDA #1
+  STA gamestate
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 

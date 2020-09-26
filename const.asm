@@ -28,6 +28,11 @@ ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
 ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
                               ;                 = 232         = 58 / 64
 
+; Game state
+GAME_TITLE        = 0
+GAME_RUN          = 1
+GAME_KILL         = 2
+
 ; ARGUMENTS
 
 ; Positional

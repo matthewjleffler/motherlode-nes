@@ -20,6 +20,7 @@ pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
 nametable               .rs 1 ; Which table we're on
 state                   .rs 1 ; state, for bullets or enemies
+gamestate               .rs 1 ; gamestate, for controlling what screen we're on
 debug                   .rs 1 ; for debug rendering
 scoreChanged            .rs 1 ; Whether or not score changed this frame
 bufferUpdateIndex       .rs 1 ; the current buffer offset for this update
