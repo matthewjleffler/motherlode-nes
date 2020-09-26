@@ -108,16 +108,9 @@ LoadBackground:
   ; End outer loop
 
 InitializeVariables:
-  LDA #PLAYER_SPAWN_X         ; Set up player spawn position
-  STA playerPosX+1
-  LDA #PLAYER_SPAWN_Y
-  STA playerPosY+1
-  LDA #10
-  STA seed                    ; TODO init seed with player input
-  LDA #SPAWN_MIN_TICKS
-  STA enemySpawnTimer
-  LDA #1
+  LDA #GAME_TITLE
   STA gamestate
+  JSR SetGameState
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 

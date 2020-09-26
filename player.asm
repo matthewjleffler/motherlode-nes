@@ -4,14 +4,6 @@
 ; CONSTANTS
 
 ; Input
-BUTTONA           = %10000000
-BUTTONB           = %01000000
-BUTTONSEL         = %00100000
-BUTTONSTA         = %00010000
-BUTTONU           = %00001000
-BUTTOND           = %00000100
-BUTTONL           = %00000010
-BUTTONR           = %00000001
 MOVE_INPUT        = %00001111
 MASK_UD           = %00001100
 MASK_LR           = %00000011

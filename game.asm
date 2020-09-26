@@ -27,12 +27,14 @@ NMI:                          ; NMI frame interrupt
 
   ; Check game state
   LDA gamestate
+  CMP #GAME_PAUSE
+  BEQ .statePause
   CMP #GAME_KILL
   BEQ .stateKill
   CMP #GAME_RUN
   BEQ .stateRun
 ; title
-  ; TODO content
+  JSR .titleLoop
   JMP .endLoop
 .stateKill:
   ; TODO content
@@ -40,12 +42,35 @@ NMI:                          ; NMI frame interrupt
 .stateRun:
   JSR .gameLoop
   JMP .endLoop
+.statePause:
+  ; TODO content
+  JMP .endLoop
 
 .endLoop:
   LDA #0                      ; Add a trailing 0 to the end of the background
   LDX bufferUpdateIndex       ;  update buffer
   STA backgroundBuffer, X
   RTI                         ; Return from interrupt
+
+.titleLoop:
+  LDA buttons1fresh
+  AND #BUTTONSTA
+  CMP #BUTTONSTA
+  BEQ .startGame
+  RTS
+.startGame:
+  LDA animTick                ; Init RNG with anim tick
+  STA seed
+  LDA #PLAYER_SPAWN_X         ; Set up player spawn position
+  STA playerPosX+1
+  LDA #PLAYER_SPAWN_Y
+  STA playerPosY+1
+  LDA #SPAWN_MIN_TICKS        ; Set up initial enemy spawn timer
+  STA enemySpawnTimer
+  LDA #GAME_RUN
+  STA gamestate
+  JSR SetGameState
+  RTS
 
 .gameLoop:
   JSR TestPlayerMove

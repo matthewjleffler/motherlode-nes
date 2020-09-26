@@ -10,6 +10,16 @@ TILE_WIDTH        = 8
 TILES_PX_3        = 3 * TILE_WIDTH ; 3 tiles high in pixels
 TILES_PX_2        = 2 * TILE_WIDTH ; 2 tiles high in pixels
 
+; Input
+BUTTONA           = %10000000
+BUTTONB           = %01000000
+BUTTONSEL         = %00100000
+BUTTONSTA         = %00010000
+BUTTONU           = %00001000
+BUTTOND           = %00000100
+BUTTONL           = %00000010
+BUTTONR           = %00000001
+
 ; Gameplay
 STATEMASK         = %00000011 ; Mask for lower two bits
 ENEMYCOUNT        = 6         ; Max number of enemies
@@ -32,6 +42,7 @@ ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
 GAME_TITLE        = 0
 GAME_RUN          = 1
 GAME_KILL         = 2
+GAME_PAUSE        = 3
 
 ; ARGUMENTS
 

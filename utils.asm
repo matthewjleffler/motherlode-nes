@@ -55,6 +55,47 @@ ReadControllers:
   BEQ .controller
   RTS
 
+; Sets game state
+; Expects gamestate to already be set, this just applies the proper other settings
+SetGameState:
+  LDA gamestate
+  CMP #GAME_TITLE
+  BEQ .testGameTitle
+  CMP #GAME_RUN
+  BEQ .testGameRun
+  CMP #GAME_PAUSE
+  BEQ .testGamePause
+  CMP #GAME_KILL
+  BEQ .testGameKill
+.testGameTitle:
+  JMP .stateTitle
+.testGameRun:
+  JMP .stateRun
+.testGamePause:
+  JMP .statePause
+.testGameKill:
+  JMP .stateKill
+
+.stateTitle:
+  LDA #1
+  STA nametable               ; Set nametable to title
+  RTS
+.stateRun:
+  LDA #0
+  STA nametable               ; Set nametable to game
+  ; TODO clear pause text
+  RTS
+.statePause:
+  LDA #0
+  STA nametable               ; Set nametable to game
+  ; TODO set pause text
+  RTS
+.stateKill:
+  LDA #1
+  STA nametable
+  ; TODO draw hiscore and return to game text
+  RTS
+
 ; Sets whatever is in A to the debug value, and draws it into the score
 ;
 ; Args:
