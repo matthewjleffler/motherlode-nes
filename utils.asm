@@ -144,6 +144,7 @@ SetGameState:
 .stateKill:
   LDA #$FF                    ; Clear value
   LDX #0
+  STX animTick                ; Clear anim tick too
 .loopClearSprites:
   STA $0200, X
   INX

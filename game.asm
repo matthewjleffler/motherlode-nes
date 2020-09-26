@@ -71,12 +71,29 @@ NMI:                          ; NMI frame interrupt
   STA len
   JSR StartBackgroundUpdate
   LDX #0
+; See if we're on a blink state
+  LDA animTick
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  AND #%00000001
+  BEQ .drawStartText
+  JMP .drawBlankText
 .drawStartText:
   LDA pressStartText, X
   JSR AddBackgroundByte
   INX
   CPX #STARTLEN
   BNE .drawStartText
+  RTS
+.drawBlankText:
+  LDA #CLEAR_TILE
+  JSR AddBackgroundByte
+  INX
+  CPX #STARTLEN
+  BNE .drawBlankText
   RTS
 
 .startGame:
