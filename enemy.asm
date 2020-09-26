@@ -8,6 +8,9 @@ TICKMASK          = %00000111 ; Mask for updating enemy logic
 ENEMYANIMMASK     = %00001111 ; Mask for updating animation
 FRAME_MASK        = %00000001 ; Low bit to check animation
 
+; Gameplay
+SKEL_DAMAGE_RAD   = 8         ; 8 pixel rad for skeleton damage
+
 ; Timing
 SPAWN_BLOCK_TICKS = 3         ; Blocked spawn retry ticks
 EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
@@ -415,7 +418,7 @@ UpdateEnemyLoop:
   BEQ .stateSpawn2Done        ; Yes
   JMP .updateLayout           ; No, just draw
 .stateSpawn2Done:
-  LDA #EN_STATE_HEAD          ; TODO pick enemy randomly
+  LDA #EN_STATE_SKEL          ; TODO pick enemy randomly
   JSR SetEnemyState
   JMP .updateLayout
 
@@ -441,26 +444,37 @@ UpdateEnemyLoop:
   JSR DrawSkeletonFrame1
 .skelUpdate:
   JSR TestEnemyHealth
-  BEQ .skelCheckVel           ; Still alive
+  BEQ .skelSetupPos           ; Still alive
   LDX #1                      ; Dead, add 10 points
   JSR AddScore
   JMP .updateLayout
-.skelCheckVel:
-  LDA enemyTick, X            ; Did our pathfind tick run out?
-  BNE .skelMove               ; No, move with our last velocity
-  LDA #EN_TIME_PATH
-  STA enemyTick, X            ; Reset pathfind tick
+.skelSetupPos:
   LDY positionOffset, X
   LDA enemyPosX+1, Y          ; Store X pos for atan2
   STA posX
   LDA enemyPosY+1, Y          ; Store Y pos for atan2
   STA posY
   JSR StorePlayerPosForSearch
+  JSR ManhattanDistance       ; Test if we've hit player
+  CMP #SKEL_DAMAGE_RAD
+  BCC .hitPlayer
+; Didn't hit player, check for velocity change
+  LDA enemyTick, X            ; Did our pathfind tick run out?
+  BNE .skelMove               ; No, move with our last velocity
+  LDA #EN_TIME_PATH
+  STA enemyTick, X            ; Reset pathfind tick
   JSR Atan216                 ; Atan2 16 degrees
   LDX enemyCount              ; Reset X for enemy
   STA enemyVel, X             ; Store velocity
 .skelMove:
   JSR MoveEnemy
+  JMP .updateLayout
+.hitPlayer:
+  JSR PlayerTakeDamage        ; Deal damage to player
+  LDX enemyCount              ; Kill this skeleton
+  LDA #0
+  STA enemyHealth, X
+  JSR TestEnemyHealth         ; Don't add score
   JMP .updateLayout
 
 .stateHead:

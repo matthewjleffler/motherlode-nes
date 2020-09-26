@@ -164,7 +164,6 @@ UpdateEnemyBullets:
   STA posY
   JSR StorePlayerPosForSearch ; Store player pos for atan2, posX and posY are set up
   JSR ManhattanDistance
-  CLC
   CMP #EBULLET_RAD
   BCC .hitPlayer
 ; World Collision

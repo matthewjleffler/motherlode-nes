@@ -52,6 +52,7 @@ RNG:
 ManhattanDistance:
 ;findX
   LDA posX                    ; Load x1
+  CLC
   CMP posX2                   ; Compare x2
   BCC .x1less
 ;x2less
@@ -66,6 +67,7 @@ ManhattanDistance:
   STA sum
 .findY:
   LDA posY                    ; Load y1
+  CLC
   CMP posY2                   ; Compare y2
   BCC .y1less
 ;y2less
