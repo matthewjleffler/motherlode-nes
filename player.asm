@@ -56,6 +56,8 @@ TestPlayerMove:
   LDA #1                      ; Update the status bar to show dodge is ready
   STA len                     ; 1 tile to update
   STA startX                  ; X index is 1
+  LDA #STATUS_Y
+  STA startY
   JSR StartBackgroundUpdate
   LDA #STATUS_BUTT_ON         ; "on" tile
   JSR AddBackgroundByte
@@ -72,6 +74,8 @@ TestPlayerMove:
   LDA #1                      ; Update the status bar to show dodge is not ready
   STA len                     ; 1 tile to update
   STA startX                  ; X index is 1
+  LDA #STATUS_Y
+  STA startY
   JSR StartBackgroundUpdate
   LDA #STATUS_BUTT_OFF        ; "off" tile
   JSR AddBackgroundByte

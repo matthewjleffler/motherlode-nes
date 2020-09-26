@@ -94,7 +94,6 @@ titleAttributes:
 
 ; COLLISION
 
-; $E400
 collision:
   .db %00000000,%00000000,%00000000,%00000000
   .db %00000000,%00000000,%00000000,%00000000
@@ -136,6 +135,11 @@ collisionLookupY:
 
 collisionLookupX:
   .db 00, 08, 016, 024
+
+; TILES
+
+pauseText:
+  .db $19, $0A, $1E, $1C, $0E ; Tiles spelling out "PAUSE"
 
 ; PALETTES
 

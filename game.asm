@@ -51,7 +51,7 @@ NMI:                          ; NMI frame interrupt
   JSR .gameLoop
   JMP .endLoop
 .statePause:
-  ; TODO content
+  JSR .pauseLoop
   JMP .endLoop
 
 .endLoop:
@@ -61,9 +61,8 @@ NMI:                          ; NMI frame interrupt
   RTI                         ; Return from interrupt
 
 .titleLoop:
-  LDA buttons1fresh
-  AND #BUTTONSTA
-  CMP #BUTTONSTA
+  JSR .testStartPressed
+  CMP #1
   BEQ .startGame
   RTS
 
@@ -82,6 +81,15 @@ NMI:                          ; NMI frame interrupt
   RTS
 
 .gameLoop:
+  JSR .testStartPressed
+  CMP #1
+  BNE .runGameLoop
+  LDA #GAME_PAUSE
+  STA gamestate
+  JSR SetGameState
+  JSR DarkenPalette
+  RTS
+.runGameLoop:
   JSR TestPlayerMove
   JSR UpdatePlayerSprites
   JSR TestPlayerSpecial
@@ -91,4 +99,27 @@ NMI:                          ; NMI frame interrupt
   JSR UpdateEnemies
   JSR UpdateEnemyBullets
   JSR DrawScoreUpdate
+  RTS
+
+.pauseLoop:
+  JSR .testStartPressed
+  CMP #1
+  BNE .endPauseLoop
+  LDA #GAME_RUN
+  STA gamestate
+  JSR SetGameState
+  JSR SetDefaultPalette
+.endPauseLoop:
+  RTS
+
+; Returns 1 in A, otherwise 0
+.testStartPressed:
+  LDA buttons1fresh
+  AND #BUTTONSTA
+  CMP #BUTTONSTA
+  BEQ .startPressed
+  LDA #0
+  RTS
+.startPressed:
+  LDA #1
   RTS

@@ -4,15 +4,17 @@
 ; CONSTANTS
 
 ; Rendering
-STATUS_LO         = $60       ; lo pointer index of status bar bg row
+STATUS_Y          = 3         ; y tile for status bar
 DEBUG_TILE        = 19        ; X position of the debug tile rendering
 SCORE_TILE        = 23        ; X position of the score places
+PAUSE_TILE        = 14        ; X position of the pause text
 LOW_MASK          = %00001111
 BG_TABLE0         = $20
 BG_TABLE1         = $24
 PALETTE_SIZE      = $20
 PALETTE_WIDTH     = $10       ; Palette is 16 colors wide
 PALETTE_TOP       = $30       ; Top row of color, for lightening
+CLEAR_TILE        = $28       ; Empty bg tile
 
 ; Controllers
 CONTROLHI         = $40       ; Pointer to controller hi address
@@ -83,16 +85,45 @@ SetGameState:
   LDA #1
   STA nametable               ; Set nametable to title
   RTS
+
 .stateRun:
   LDA #0
   STA nametable               ; Set nametable to game
-  ; TODO clear pause text
+  LDA #PAUSELEN               ; Clear Pause text
+  STA len
+  LDA #STATUS_Y
+  STA startY
+  LDA #PAUSE_TILE
+  STA startX
+  JSR StartBackgroundUpdate
+  LDX #0
+  LDA #CLEAR_TILE
+.loopClearPause:
+  JSR AddBackgroundByte
+  INX
+  CPX #PAUSELEN
+  BNE .loopClearPause
   RTS
+
 .statePause:
   LDA #0
   STA nametable               ; Set nametable to game
-  ; TODO set pause text
+  LDA #PAUSELEN               ; Draw pause text
+  STA len
+  LDA #STATUS_Y
+  STA startY
+  LDA #PAUSE_TILE
+  STA startX
+  JSR StartBackgroundUpdate
+  LDX #0
+.loopDrawPause:
+  LDA pauseText, X
+  JSR AddBackgroundByte
+  INX
+  CPX #PAUSELEN
+  BNE .loopDrawPause
   RTS
+
 .stateKill:
   ; TODO hide all sprites
   LDA #1
@@ -108,6 +139,8 @@ DrawDebug:
   STA debug                   ; Store debug value - stop score from rendering
   LDA #2
   STA len                     ; 2 characters going to end of score
+  LDA #STATUS_Y
+  STA startY
   LDA #DEBUG_TILE
   STA startX                  ; Tile X beginning of score
   JSR StartBackgroundUpdate
@@ -183,7 +216,6 @@ LightenPalette:
   BNE .loop
   RTS
 
-
 UpdatePalettes:
   LDA $2002                   ; read PPU status to reset the high/low latch
   LDA #$3F
@@ -202,6 +234,10 @@ UpdatePalettes:
 ; BACKGROUND
 
 ; Applies previously setup background buffer updates
+;
+; Local:
+;  bgLo       - low bg access byte
+;  bgHi       - hi bg access byte
 UpdateBackground:
   LDY #0                      ; Count through the buffer
   LDA backgroundBuffer
@@ -213,8 +249,33 @@ UpdateBackground:
   BNE .startDraw              ; No, draw this buffer
   RTS                         ; Yes, Done
 .startDraw:
-  INY                         ; Increment buffer
   LDA $2002                   ; Read PPU status to reset the high/low latch
+  ; Calculate offset for Y and X
+  LDA #0                      ; Clear background pointer
+  STA bgHi
+  STA bgLo
+  INY                         ; Increment buffer to Y
+  LDA backgroundBuffer, Y     ; Get Y tile
+  STA bgLo                    ; Store it in lo
+  ASL bgLo                    ; Multiply by 32, shifting bits 5 times
+  ROL bgHi                    ;  over into the hi address
+  ASL bgLo
+  ROL bgHi
+  ASL bgLo
+  ROL bgHi
+  ASL bgLo
+  ROL bgHi
+  ASL bgLo
+  ROL bgHi
+  INY                         ; Increment buffer to X
+  LDA backgroundBuffer, Y     ; Load X offset
+  CLC                         ; Now add X offset to bglo
+  ADC bgLo
+  STA bgLo                    ; Store new bg lo
+  LDA #0
+  ADC bgHi                    ; Add carry to bgHi
+  STA bgHi                    ; Store new bg hi
+; Check nametable
   LDA nametable               ; Check which table we're writing to
   BNE .table1                 ; We're on table 1
   LDA #BG_TABLE0              ; Table 0
@@ -222,16 +283,16 @@ UpdateBackground:
 .table1:
   LDA #BG_TABLE1
 .setupBuffer:
-  STA $2006                   ; Store hi byte of bg index
-  LDA backgroundBuffer, Y     ; X index of the status bar to draw at
   CLC
-  ADC #STATUS_LO              ; Put it within the status bar row
+  ADC bgHi                    ; Add nametable offset to bgHi
+  STA $2006                   ; Store hi byte of bg index
+  LDA bgLo
   STA $2006                   ; Store lo byte of status index row
   INY                         ; Increment buffer
 .loopDraw:
   LDA backgroundBuffer, Y     ; Load tile to draw from buffer
   STA $2007                   ; Write tile to PPU
-  INY                         ; Increment buffer
+  INY                         ; Increment buffer to next len
   DEX                         ; Decrement length
   CPX #0                      ; Done with this buffer?
   BEQ .loopUpdate             ; Yes, draw next buffer
@@ -242,10 +303,13 @@ UpdateBackground:
 ;
 ; Args:
 ;  len                        - How many bytes to copy
+;  startY                     - The Y tile to start the draw into
 ;  startX                     - The X tile to start the draw into
 ;  oldX                       - Preserve X loop when adding to buffer
 StartBackgroundUpdate:
   LDA len
+  JSR AddBackgroundByte
+  LDA startY
   JSR AddBackgroundByte
   LDA startX
   JSR AddBackgroundByte
@@ -423,6 +487,8 @@ DrawScoreUpdate:
   STX len
   LDA #SCORE_TILE             ; We start drawing at score place
   STA startX
+  LDA #STATUS_Y
+  STA startY
   JSR StartBackgroundUpdate
 .drawScoreLoop:
   DEX                         ; Decrement X
