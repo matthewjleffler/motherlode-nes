@@ -101,7 +101,7 @@ LoadBackground:
   LDA #$00
   STA pointerLo               ; put the low byte of the address of background
                               ; into pointer
-  LDA #HIGH(background)
+  LDA #HIGH(gameplayBackground)
   STA pointerHi               ; put the high byte of the address into pointer
   LDX #$00                    ; start at pointer + 0
   LDY #$00
