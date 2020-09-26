@@ -55,20 +55,6 @@ clrmem:
   BNE clrmem
   JSR vblankwait              ; Second VBLANK, PPU is now ready
 
-LoadPalettes:
-  LDA $2002                   ; read PPU status to reset the high/low latch
-  LDA #$3F
-  STA $2006                   ; write the high byte of $3F00 address
-  LDA #$00
-  STA $2006                   ; write the low byte of $3F00 address
-  LDX #$00                    ; start out at 0
-.loop:
-  LDA palette, x              ; load data from address (palette + x)
-  STA $2007                   ; write to PPU
-  INX
-  CPX #$20                    ; Size of all pallete bytes
-  BNE .loop                   ; Branch to LoadPalettesLoop if loop not done
-
 LoadSprites:
   LDX #$00                    ; start at 0
   LDA #$FF                    ; fill with FF so sprites are hidden
@@ -108,6 +94,7 @@ InitializeVariables:
   LDA #GAME_TITLE
   STA gamestate
   JSR SetGameState
+  JSR SetDefaultPalette
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 

@@ -17,6 +17,7 @@ PLAYER_SPAWN_Y    = $80
 ; SUBROUTINES
 
 NMI:                          ; NMI frame interrupt
+  JSR UpdatePalettes
   JSR UpdateBackground
   LDA #$00                    ; Copy sprites through DMA
   STA $2003                   ; set the low byte (00) of the RAM address

@@ -10,6 +10,9 @@ SCORE_TILE        = 23        ; X position of the score places
 LOW_MASK          = %00001111
 BG_TABLE0         = $20
 BG_TABLE1         = $24
+PALETTE_SIZE      = $20
+PALETTE_WIDTH     = $10       ; Palette is 16 colors wide
+PALETTE_TOP       = $30       ; Top row of color, for lightening
 
 ; Controllers
 CONTROLHI         = $40       ; Pointer to controller hi address
@@ -117,6 +120,83 @@ DrawDebug:
   LDA debug
   AND #LOW_MASK
   JSR AddBackgroundByte       ; Put low half of debug in second slot
+  RTS
+
+; PALETTES
+
+SetDefaultPalette:
+  LDX #0
+.loop:
+  LDA defaultPalette, X       ; Load default palette data
+  STA palette, X              ; Store into palette buffer X
+  INX
+  CPX #PALETTE_SIZE
+  BNE .loop
+  RTS
+
+DarkenPalette:
+  LDX #0
+.loop:
+  LDA #PALETTE_WIDTH          ; Load up palette width
+  CMP palette, X              ; Are we greater than the bottom row?
+  BCC .darken
+  JMP .black
+.darken:
+  LDA palette, X
+  SEC
+  SBC #PALETTE_WIDTH
+  CMP #$0D                    ; Bad black, don't use
+  BEQ .black
+  JMP .increment
+.black:
+  LDA #$0F
+.increment:
+  STA palette, X
+  INX
+  CPX #PALETTE_SIZE
+  BNE .loop
+  RTS
+
+LightenPalette:
+  LDX #0
+.loop:
+  LDA palette, X              ; Are we lower than the top row?
+  AND #LOW_MASK               ; Check low bits
+  CMP #$0E                    ; Are we in the color range?
+  BCC .testLighten            ; Yes, lighten
+  JMP .increment              ; No, just increment
+.testLighten:
+  LDA palette, X
+  CMP #PALETTE_TOP
+  BCC .lighten
+  JMP .white
+.lighten:
+  CLC
+  ADC #PALETTE_WIDTH
+  JMP .increment
+.white:
+  LDA #$30                    ; White
+.increment:
+  STA palette, X
+  INX
+  CPX #PALETTE_SIZE
+  BNE .loop
+  RTS
+
+
+UpdatePalettes:
+  LDA $2002                   ; read PPU status to reset the high/low latch
+  LDA #$3F
+  STA $2006                   ; write the high byte of $3F00 address
+  LDA #$00
+  STA $2006                   ; write the low byte of $3F00 address
+  LDX #$00                    ; start out at 0
+.loop:
+  LDA palette, x              ; load data from address (palette + x)
+  STA $2007                   ; write to PPU
+  INX
+  CPX #PALETTE_SIZE           ; Size of all pallete bytes
+  BNE .loop                   ; Branch to LoadPalettesLoop if loop not done
   RTS
 
 ; BACKGROUND
