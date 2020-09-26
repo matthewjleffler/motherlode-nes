@@ -9,6 +9,13 @@
   .include "utils.asm"
   .include "math.asm"
 
+; CONSTANTS
+
+PLAYER_SPAWN_X    = $80
+PLAYER_SPAWN_Y    = $80
+
+; SUBROUTINES
+
 NMI:                          ; NMI frame interrupt
   JSR UpdateBackground
   LDA #$00                    ; Copy sprites through DMA
@@ -58,6 +65,7 @@ NMI:                          ; NMI frame interrupt
   CMP #BUTTONSTA
   BEQ .startGame
   RTS
+
 .startGame:
   LDA animTick                ; Init RNG with anim tick
   STA seed

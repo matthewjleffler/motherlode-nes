@@ -91,6 +91,7 @@ SetGameState:
   ; TODO set pause text
   RTS
 .stateKill:
+  ; TODO hide all sprites
   LDA #1
   STA nametable
   ; TODO draw hiscore and return to game text

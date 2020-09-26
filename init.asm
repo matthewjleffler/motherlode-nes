@@ -3,9 +3,6 @@
 
 ; CONSTANTS
 
-PLAYER_SPAWN_X    = $80
-PLAYER_SPAWN_Y    = $80
-PLAYERSIZE        = 6 * 4     ; player byte size
 BG_HI             = $20       ; hi pointer to background table addresses
 
 ; SUBROUTINES

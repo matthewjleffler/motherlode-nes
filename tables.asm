@@ -145,16 +145,6 @@ palette:
   ;   Player            Player Bullets    Enemey            Enemy Bullets
   .db $3E,$06,$30,$08,  $00,$24,$23,$34,  $00,$20,$28,$1D,  $00,$2A,$3A,$3C
 
-; SPRITES ; TODO bring this into game logic
-
-playersprites:
-  .db $80,  $00,  %00000000,  $80
-  .db $80,  $01,  %00000000,  $88
-  .db $88,  $02,  %00000000,  $80
-  .db $88,  $03,  %00000000,  $88
-  .db $90,  $04,  %00000000,  $80
-  .db $90,  $05,  %00000000,  $88
-
 ; LOOKUP TABLES
 
 ; Gets position offset by index
