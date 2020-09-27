@@ -81,7 +81,7 @@ ManhattanDistance:
 .sum:
   CLC                         ; y is in A
   ADC sum                     ; add with x
-  BVC .finish                 ; if we didn't overflow, we're done
+  BCC .finish                 ; if we didn't overflow, we're done
   LDA #$FF                    ; Just set result to full if we overflowed
 .finish:
   STA sum                     ; Store final sum
