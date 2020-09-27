@@ -57,7 +57,10 @@ SetEnemyBulletState:
 ;
 ; Trashes X and Y
 SpawnEnemyBullet:
-  ; Find a free bullet
+  LDA monochromeTime          ; Is the player ability timer going?
+  BEQ .findFreeBullet         ; No - we can shoot
+  RTS
+.findFreeBullet:
   LDX #0                      ; Clear X loop
   STX bulletCount
   LDY #0                      ; Clear Y, it indicates we've shot
@@ -80,7 +83,7 @@ SpawnEnemyBullet:
   STA state
   JSR SetEnemyBulletState     ; Set the current bullet state to MOV
   JSR StorePlayerPosForSearch ; Store player pos for atan2, posX and posY are set up
-  JSR Atan232                 ; Get Atan2 in 32 degrees, store in velocity index
+  JSR Atan2Deg32              ; Get Atan2 in 32 degrees, store in velocity index
   LDX bulletCount
   STA enemyBulletVel, X       ; Store resulting velocity index for the current bullet
   LDY #1                      ; Mark that we've shot

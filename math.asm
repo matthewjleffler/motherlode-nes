@@ -135,28 +135,32 @@ Atan2:
   STA angle
   RTS
 
-Divide32:
+DivideBy8:
+DivideMax32:
   LSR A
   LSR A
   LSR A
   RTS
 
-Divide16:
-  LSR A
-  LSR A
-  LSR A
-  LSR A
-  RTS
-
-Divide8:
-  LSR A
+DivideBy16:
+DivideMax16:
   LSR A
   LSR A
   LSR A
   LSR A
   RTS
 
-Divide4:
+DivideBy32:
+DivideMax8:
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  RTS
+
+DivdeBy64:
+DivideMax4:
   LSR A
   LSR A
   LSR A
@@ -166,13 +170,13 @@ Divide4:
   RTS
 
 ; Atan2 divided down to 32 degrees
-Atan232:
+Atan2Deg32:
   JSR Atan2
-  JSR Divide32
+  JSR DivideMax32
   RTS
 
 ; Atan2 divided down to 16 degrees
-Atan216:
+Atan2Deg16:
   JSR Atan2
-  JSR Divide16
+  JSR DivideMax16
   RTS

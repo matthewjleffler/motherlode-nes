@@ -461,7 +461,7 @@ UpdateEnemyLoop:
   BNE .skelMove               ; No, move with our last velocity
   LDA #EN_TIME_PATH
   STA enemyTick, X            ; Reset pathfind tick
-  JSR Atan216                 ; Atan2 16 degrees
+  JSR Atan2Deg16              ; Atan2 16 degrees
   LDX enemyCount              ; Reset X for enemy
   STA enemyVel, X             ; Store velocity
 .skelMove:
@@ -505,10 +505,10 @@ UpdateEnemyLoop:
   JSR SpawnEnemyBullet        ; Try to spawn bullet
   LDX enemyCount              ; Return enemyCount to X
   JSR RNG
-  JSR Divide4
+  JSR DivideMax4
   BNE .still
   JSR RNG                     ; Pick a random move direction
-  JSR Divide16
+  JSR DivideMax16
   STA enemyVel, X             ; Set the velocity
   JMP .headMove
 .still:
@@ -543,7 +543,7 @@ IncrementEnemyCount:
 
 SpawnRandomEnemy:
   JSR RNG
-  JSR Divide8
+  JSR DivideMax8
   CMP #2                      ; 2/8 head
   BCC .spawnHead
   LDA #EN_STATE_SKEL

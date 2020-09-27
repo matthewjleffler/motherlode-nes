@@ -20,7 +20,6 @@ BULLFRAME3        = $09
 ; States
 BULL_OFF          = $00
 BULL_MOV          = $01
-BULL_EXP          = $02
 
 ; SUBROUTINES
 
@@ -96,7 +95,7 @@ TestPlayerShootBullet:
   STA posX2                   ; Store enemy X
   LDA enemyPosY+1, Y          ; Load enemy Y
   STA posY2                   ; Store enemy Y
-  JSR Atan232                 ; Get degrees between player and enemy
+  JSR Atan2Deg32              ; Get degrees between player and enemy
   LDX bulletCount             ; Put bulletCount back in X
   STA playerBulletVel, X      ; Store the velocity index for the current bullet
   LDY #1                      ; Mark that we've already shot
@@ -133,14 +132,9 @@ UpdatePlayerBullets:
   INC bulletAnim              ; Increment bullet anim counter
 .updateLoop:
   JSR GetPlayerBulletState    ; state now stores bullet state
-  CMP #BULL_EXP               ; Are we exploding?
-  BEQ .bulletExplode
   CMP #BULL_MOV               ; Are we moving?
   BEQ .bulletMove
   JMP .incrementLoop          ; Other bullet states do nothing
-.bulletExplode:
-  JSR DoPlayerBulletExplode
-  JMP .incrementLoop
 .bulletMove:
   JSR DoPlayerBulletMove
 .incrementLoop:               ; Bullet update done
@@ -148,10 +142,6 @@ UpdatePlayerBullets:
   LDA bulletCount
   CMP #PBULLETCOUNT           ; Are we done with the loop?
   BNE .updateLoop
-  RTS
-
-; TODO implement
-DoPlayerBulletExplode:
   RTS
 
 DoPlayerBulletMove:
@@ -170,7 +160,6 @@ DoPlayerBulletMove:
   ADC positionOffset, X       ; Move the pointer forward to the right index
   STA pointerSubLo
   JSR SubPixelMove            ; Move the Y position
-  ; STA posY                    ; Store new position for collision
   ; Move pixel X
   LDY playerBulletVel, X      ; Load bullet velocity index in Y
   LDA playerBulletMoveX, Y    ; Velocity Lo
@@ -185,9 +174,7 @@ DoPlayerBulletMove:
   ADC positionOffset, X       ; Move the pointer forward to the right index
   STA pointerSubLo
   JSR SubPixelMove            ; Move the X position
-  ; STA posX                    ; Store new position for collision
   ; Save the final movement positions for searches
-  ; TODO why doesn't SubPixelMove do this with A?
   LDX bulletCount
   LDY positionOffset, X
   LDA playerBulletPosX+1, Y

@@ -40,7 +40,7 @@ enemySpawnTimer         .rs 1 ; How many spawn ticks remain before trying to spa
 playerBulletStates      .rs 1 ; On/off states for 4 player bullets
                               ; 00 - off
                               ; 01 - on
-                              ; 10 - explosion?
+                              ; 10 - unused ??
                               ; 11 - unused ??
                               ; 44332211
 enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
@@ -50,11 +50,15 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
                               ; 11 - ??
                               ; 88776655 44332211
 playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
+playerAbilityTick       .rs 1 ; Tick for using player ability
+playerAbility           .rs 1 ; Timer for using player ability
 playerHealth            .rs 1 ; Player health
 playerDamageCooldown    .rs 1 ; Ticks for player damage cooldown
 playerDamageFlash       .rs 1 ; Timer for player damage flash
 fadeTime                .rs 1 ; Timer for use during fades
 fadeCount               .rs 1 ; Counter for use during fades
+monochromeTime          .rs 1 ; Counter for flashing monochrome, used to block bullets
+monochrome              .rs 1 ; Flag for monochrome
 
   .rsset $0100                ; Background update buffer here
 backgroundBuffer        .rs 160

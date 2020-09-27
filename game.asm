@@ -34,8 +34,8 @@ NMI:                          ; NMI frame interrupt
   LDA #0                      ; Clear background update buffer, and count
   STA backgroundBuffer
   STA bufferUpdateIndex
-  INC animTick                ; Increment animation tick
   STA scoreChanged
+  JSR .countTimers
   JSR ReadControllers
 
   ; Check game state
@@ -59,6 +59,25 @@ NMI:                          ; NMI frame interrupt
   LDX bufferUpdateIndex       ;  update buffer
   STA backgroundBuffer, X
   RTI                         ; Return from interrupt
+
+.countTimers:
+  INC animTick                ; Increment animation tick
+  LDA monochromeTime
+  BNE .countmono
+  JMP .endCount
+.countmono:
+  DEC monochromeTime
+  LDA monochromeTime
+  BEQ .endmono
+  AND #FRAME_MASK
+  STA monochrome
+  JMP .endCount
+.endmono:
+  LDA #0
+  STA monochrome
+  JMP .endCount
+.endCount:
+  RTS
 
 .titleLoop:
   LDA fadeCount               ; Have we started fading?
@@ -102,11 +121,7 @@ NMI:                          ; NMI frame interrupt
   RTS
 .testStartBlink:
   LDA animTick                ; See if we're on a blink state
-  LSR A
-  LSR A
-  LSR A
-  LSR A
-  LSR A
+  JSR DivideBy32
   AND #FRAME_MASK
   BEQ .drawStartText
   JMP .clearStartText
@@ -159,6 +174,7 @@ NMI:                          ; NMI frame interrupt
   STA enemyBulletStates       ; Clear enemy bullet states lo
   STA enemyBulletStates+1     ; Clear enemy bullet states hi
   STA playerDodge             ; Clear player dodge
+  STA playerAbility           ; Clear player ability timer
   LDX #0
 .loopClearEnemy:
   STA enemyState, X

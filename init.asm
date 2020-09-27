@@ -19,8 +19,8 @@ reenableppu:
                               ; background from Pattern Table 1
   ORA nametable               ; Inclusive or with nametable variable
   STA $2000
-  LDA #%00011110              ; enable sprites, enable background, no clipping
-                              ; on left side
+  LDA #%00011110
+  ORA monochrome
   STA $2001
   LDA #$00                    ; tell the ppu there is no background scrolling
   STA $2005

@@ -19,8 +19,12 @@ DODGE_COOLDOWN    = 25        ; 25/60 of a second
 DAMAGE_COOLDOWN   = 20        ; 20/60 of a second
 FLASH_DAMAGE      = 12
 FLASH_DEATH       = 48
+ABILITY_TICK      = 60
+ABILITY_COOLDOWN  = 10        ; 60 ticks (8 seconds?)
+ABILITY_FLASH     = 16
 
 ; Status Tiles
+ABILITY_X         = 3         ; Status X position of ability cooldown
 STATUS_BUTT_OFF   = $62
 STATUS_BUTT_ON    = $63
 
@@ -245,22 +249,64 @@ TestPlayerMove:
   RTS
 
 TestPlayerSpecial:
-  LDA buttons1fresh
+  LDA playerAbility           ; Have already used recently
+  BNE .countDown              ; Yes - count down
+  LDA buttons1fresh           ; No - Did we press A?
   AND #BUTTONA
   CMP #BUTTONA
-  BEQ .doPlayerSpecial
-  RTS
+  BEQ .doPlayerSpecial        ; Yes - do ability
+  RTS                         ; No - return
 .doPlayerSpecial:
-  LDA #0
-  STA playerHealth
-  ; LDA #GAME_KILL
-  ; STA gamestate
-  ; JSR SetGameState
-  ; INC debug
-  ; LDA debug
-  ; JSR DrawDebug
-  ; LDX #6
-  ; JSR AddScore
+  LDA #ABILITY_FLASH
+  STA monochromeTime
+  LDA #1
+  STA monochrome
+  LDX #0
+  STX enemyBulletStates
+  STX enemyBulletStates+1
+.killBulletLoop:
+  STX bulletCount
+  JSR HideEnemyBullet
+  INX
+  CPX #EBULLETCOUNT
+  BNE .killBulletLoop
+  ; TODO do ability
+  LDA #ABILITY_TICK           ; Set cooldown
+  STA playerAbilityTick
+  LDA #ABILITY_COOLDOWN
+  STA playerAbility
+  LDA #1                      ; Update hud
+  STA len
+  LDA #ABILITY_X
+  STA startX
+  LDA #STATUS_Y
+  STA startY
+  JSR StartBackgroundUpdate
+  LDA #STATUS_BUTT_OFF
+  JSR AddBackgroundByte
+  RTS
+.countDown:
+  DEC playerAbilityTick
+  LDA playerAbilityTick
+  BEQ .count
+  RTS
+.count:
+  DEC playerAbility
+  LDA playerAbility
+  BEQ .reenableHud
+  LDA #ABILITY_TICK
+  STA playerAbilityTick
+  RTS
+.reenableHud:
+  LDA #1
+  STA len
+  LDA #ABILITY_X
+  STA startX
+  LDA #STATUS_Y
+  STA startY
+  JSR StartBackgroundUpdate
+  LDA #STATUS_BUTT_ON
+  JSR AddBackgroundByte
   RTS
 
 SetPointerForPlayer:
