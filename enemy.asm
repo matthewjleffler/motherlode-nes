@@ -12,8 +12,8 @@ SKEL_DAMAGE_RAD   = 8         ; 8 pixel rad for skeleton damage
 
 ; Timing
 SPAWN_BLOCK_TICKS = 3         ; Blocked spawn retry ticks
-EN_TIME_SPAWN1    = 12        ; Ticks to stay in spawn1
-EN_TIME_SPAWN2    = 2         ; " " spawn2
+EN_TIME_SPAWN1    = 18        ; Ticks to stay in spawn1
+EN_TIME_SPAWN2    = 4         ; " " spawn2
 EN_TIME_DIE1      = 6         ; " " die1
 EN_TIME_PATH      = 20        ; How many ticks before we run atan to pathfind
 EN_TIME_HEAD      = 20         ; How many ticks in between shooting?
@@ -28,7 +28,7 @@ EN_STATE_HEAD     = 11        ; Head
 
 ; Health values
 EN_SKEL_HEALTH    = 10
-EN_HEAD_HEALTH    = 25
+EN_HEAD_HEALTH    = 18
 
 ; Attributes
 ENEMYATT_L        = %00000010
@@ -417,8 +417,7 @@ UpdateEnemyLoop:
   BEQ .stateSpawn2Done        ; Yes
   JMP .updateLayout           ; No, just draw
 .stateSpawn2Done:
-  LDA #EN_STATE_SKEL          ; TODO pick enemy randomly
-  JSR SetEnemyState
+  JSR SpawnRandomEnemy
   JMP .updateLayout
 
 .stateDie1:
@@ -541,3 +540,17 @@ IncrementEnemyCount:
   RTS
 .continue:
   JMP UpdateEnemyLoop
+
+SpawnRandomEnemy:
+  JSR RNG
+  JSR Divide8
+  CMP #2                      ; 2/8 head
+  BCC .spawnHead
+  LDA #EN_STATE_SKEL
+  JMP .doSpawn
+.spawnHead:
+  LDA #EN_STATE_HEAD
+  JMP .doSpawn
+.doSpawn:
+  JSR SetEnemyState
+  RTS

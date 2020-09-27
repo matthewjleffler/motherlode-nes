@@ -176,6 +176,8 @@ UpdateEnemyBullets:
   JMP .animateBullet
 .hitPlayer:
   JSR PlayerTakeDamage
+  LDA playerHealth
+  BEQ .animateBullet          ; Don't delete bullet if it killed player
 .collision:
   JSR HideEnemyBullet
   RTS
