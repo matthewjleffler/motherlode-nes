@@ -29,6 +29,7 @@ NMI:                          ; NMI frame interrupt
   LDA #$02                    ; set the high byte (02) of the RAM address
   STA $4014                   ; start the transfer
   JSR reenableppu
+  JSR SoundPlayFrame
 
   ; Reset loop content
   LDA #0                      ; Clear background update buffer, and count
@@ -111,6 +112,7 @@ NMI:                          ; NMI frame interrupt
 .titleLoopDone:
   JMP .startGame
 .testInput:
+  JSR .testSound
   JSR .testStartPressed
   BEQ .testStartBlink         ; Didn't press start, blink the text
 ; Pressed start
@@ -141,6 +143,17 @@ NMI:                          ; NMI frame interrupt
   INX
   CPX #STARTLEN
   BNE .loopDrawStartText
+  RTS
+
+.testSound:
+  LDA buttons1fresh
+  AND #BUTTONA
+  CMP #BUTTONA
+  BEQ .startSound
+  RTS
+.startSound:
+  LDA #8
+  JSR SoundLoad
   RTS
 
 .clearStartText:

@@ -18,6 +18,8 @@
 
   .bank 1
   .include "tables.asm"       ; Tables, attributes, palettes, sprites
+  .include "soundtables.asm"  ; Sound tables
+  .include "songs.asm"        ; Song/sfx tables
 
   .org $FFFA                  ; First of three vectors start here
   .dw NMI                     ; NMI interrupt

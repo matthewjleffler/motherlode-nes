@@ -1,6 +1,8 @@
 ; init.asm
 ;   init and reset code
 
+  .include "sound.asm"
+
 ; CONSTANTS
 
 BG_HI             = $20       ; hi pointer to background table addresses
@@ -96,7 +98,7 @@ InitializeVariables:
   JSR SetGameState
   JSR SetDefaultPlayerPalette
   JSR SetDefaultPalette
-
+  JSR SoundInit
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 
 Forever:

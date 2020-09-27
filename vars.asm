@@ -18,6 +18,8 @@ pointerSubLo            .rs 1 ; pointer to subpixel
 pointerSubHi            .rs 1 ; pointer to high subpixel (0?)
 pointerColLo            .rs 1 ; pointer to lo collision map
 pointerColHi            .rs 1 ; pointer to hi collision map
+soundPointer            .rs 2 ; pointer to sound
+soundPointer2           .rs 2 ; second pointer to sound
 nametable               .rs 1 ; Which table we're on
 state                   .rs 1 ; state, for bullets or enemies
 gamestate               .rs 1 ; gamestate, for controlling what screen we're on
@@ -83,3 +85,26 @@ enemyVel                .rs 6 ; 6 (indexes)
 enemyBulletPosX         .rs 2 * 8; Lo sub, hi pixel * 8
 enemyBulletPosY         .rs 2 * 8; Lo sub, hi pixel * 8
 enemyBulletVel          .rs 8 ; 8 (indexes)
+
+; Sound variables
+soundDisable            .rs 1 ; Disable sound
+soundFrame              .rs 1 ; Sound frame counter
+soundSq1Old             .rs 1 ; Last value for sq1
+soundSq2Old             .rs 1 ; Last value for sq2
+soundApu                .rs 16 ; Values to write to APU
+streamCurrentSound      .rs 6 ; Current song/sfx loaded
+streamStatus            .rs 6 ; Status byte
+streamChannel           .rs 6 ; What channel this stream is on
+streamPointerLo         .rs 6 ; Low byte of pointer to sound data stream
+streamPointerHi         .rs 6 ; Hi byte of pointer to sound data stream
+streamVE                .rs 6 ; Current volume envelope
+streamVEIndex           .rs 6 ; Current position within the envelope
+streamVolDuty           .rs 6 ; Stream duty/volume settings
+streamNoteLo            .rs 6 ; Stream note lo value
+streamNoteHi            .rs 6 ; Stream note hi value
+streamTempo             .rs 6 ; The value for the ticker each frame
+streamTickerTotal       .rs 6 ; Our running tickers
+streamNoteLengthCount   .rs 6 ;
+streamNoteLength        .rs 6
+streamLoop1             .rs 6 ; Loop counter
+streamNoteOffset        .rs 6
