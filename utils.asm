@@ -259,6 +259,27 @@ SetDefaultPalette:
   INX
   CPX #PALETTE_SIZE
   BNE .loop
+  JSR ApplyPlayerPalette
+  RTS
+
+ApplyPlayerPalette:
+  LDX #0
+.loop:
+  LDA playerPalette, X        ; Load current player palette in
+  STA PALETTE_PLAYER, X
+  INX
+  CPX #3
+  BNE .loop
+  RTS
+
+SetDefaultPlayerPalette:
+  LDX #0
+.loop:
+  LDA defaultPlayerPalette, X
+  STA playerPalette, X
+  INX
+  CPX #3
+  BNE .loop
   RTS
 
 DarkenPalette:

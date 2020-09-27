@@ -94,6 +94,7 @@ InitializeVariables:
   LDA #GAME_TITLE
   STA gamestate
   JSR SetGameState
+  JSR SetDefaultPlayerPalette
   JSR SetDefaultPalette
 
   JSR reenableppu             ; Finish setting up palettes, reenable NMI

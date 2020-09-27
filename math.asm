@@ -159,7 +159,7 @@ DivideMax8:
   LSR A
   RTS
 
-DivdeBy64:
+DivideBy64:
 DivideMax4:
   LSR A
   LSR A

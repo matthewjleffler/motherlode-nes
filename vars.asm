@@ -65,6 +65,7 @@ backgroundBuffer        .rs 160
 
   .rsset $0400                ; Arrays in upper register here
 palette                 .rs 32 ; 32 palette bytes
+playerPalette           .rs 3 ; 3 player palette bytes
 score                   .rs 8 ; 8 places for score counting
 playerPosX              .rs 2 ; Lo sub, hi pixel
 playerPosY              .rs 2 ; Lo sub, hi pixel

@@ -40,7 +40,8 @@ PL_FRAME4         = $04
 PL_FRAME5         = $05
 
 ; Attributes
-PL_ATTRIB         = %00000000
+PL_ATTRIB_L       = %00000000
+PL_ATTRIB_R       = %01000000
 
 ; SUBROUTINES
 
@@ -96,6 +97,8 @@ TestPlayerMove:
   JSR AddBackgroundByte
   JMP .beginMove
 .startDodgeCooldown:
+  JSR SetDefaultPlayerPalette
+  JSR ApplyPlayerPalette
   LDA #DODGE_COOLDOWN
   STA playerDodge
   JMP .beginMove
@@ -104,6 +107,11 @@ TestPlayerMove:
   AND #BUTTONB                ; Are we pressing B?
   BEQ .beginMove              ; No - just move
   ; Start dodge
+  LDA #$31                    ; Player Dodge Palette Color
+  STA playerPalette+0
+  LDA #$34
+  STA playerPalette+2
+  JSR ApplyPlayerPalette
   LDA #1                      ; Update the status bar to show dodge is not ready
   STA len                     ; 1 tile to update
   STA startX                  ; X index is 1
@@ -330,19 +338,51 @@ UpdatePlayerSprites:
   STA tilesH                  ; Store in sprite height
   JSR UpdateSpriteLayout      ; Update sprites now
   JSR SetPointerForPlayer
-  JSR AssignPlayerFrame1
-  RTS
+  LDA animTick
+  JSR DivideBy32
+  AND #FRAME_MASK
+  BEQ AssignPlayerFrame1
+  JMP AssignPlayerFrame2
 
 AssignPlayerFrame1:
-  LDX #0
-.loop:
-  TXA
-  STA spriteFrame, X
-  LDA #PL_ATTRIB
-  STA spriteAttr, X
-  INX
-  CPX #06                     ; Finished writing player
-  BNE .loop
+  LDA #PL_FRAME0
+  STA spriteFrame+0
+  STA spriteFrame+1
+  LDA #PL_FRAME1
+  STA spriteFrame+2
+  STA spriteFrame+3
+  LDA #PL_FRAME2
+  STA spriteFrame+4
+  STA spriteFrame+5
+  LDA #PL_ATTRIB_L
+  STA spriteAttr+0
+  STA spriteAttr+2
+  STA spriteAttr+4
+  LDA #PL_ATTRIB_R
+  STA spriteAttr+1
+  STA spriteAttr+3
+  STA spriteAttr+5
+  JSR ApplyPlayerSpriteSettings
+  RTS
+
+AssignPlayerFrame2:
+  LDA #PL_FRAME3
+  STA spriteFrame+0
+  STA spriteFrame+1
+  LDA #PL_FRAME4
+  STA spriteFrame+2
+  STA spriteFrame+3
+  LDA #PL_FRAME5
+  STA spriteFrame+4
+  STA spriteFrame+5
+  LDA #PL_ATTRIB_L
+  STA spriteAttr+0
+  STA spriteAttr+2
+  STA spriteAttr+4
+  LDA #PL_ATTRIB_R
+  STA spriteAttr+1
+  STA spriteAttr+3
+  STA spriteAttr+5
   JSR ApplyPlayerSpriteSettings
   RTS
 
