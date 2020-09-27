@@ -17,6 +17,8 @@ DODGE_TIME_MASK   = %01111111 ; The time bits of dodge
 DODGE_TIME        = 7         ;  7/60 of a second
 DODGE_COOLDOWN    = 25        ; 25/60 of a second
 DAMAGE_COOLDOWN   = 20        ; 20/60 of a second
+FLASH_DAMAGE      = 12
+FLASH_DEATH       = 48
 
 ; Status Tiles
 STATUS_BUTT_OFF   = $62
@@ -40,8 +42,29 @@ PL_ATTRIB         = %00000000
 
 CountPlayerTime:
   LDA playerDamageCooldown    ; Check if we need to count the cooldown
-  BEQ .done                   ; No - it's 0
+  BEQ .testFlash              ; No - it's 0
   DEC playerDamageCooldown    ; Yes, count down
+.testFlash:
+  LDA playerDamageFlash       ; Is damage flashing?
+  BEQ .done                   ; No - done
+  DEC playerDamageFlash
+  LDA playerDamageFlash
+  BEQ .clearFlash             ; Flashing is done, clear any palette
+; Actively flashing
+  LDA animTick
+  LSR A
+  AND #FRAME_MASK
+  BEQ .flashOn
+  LDA #$0E
+  STA PALETTE_BG
+  JMP .done
+.flashOn:
+  LDA #$15
+  STA PALETTE_BG
+  JMP .done
+.clearFlash:
+  LDA #$0E
+  STA PALETTE_BG              ; Set bg back to black
 .done:
   RTS
 
@@ -306,6 +329,14 @@ PlayerTakeDamage:
   LDA #DAMAGE_COOLDOWN
   STA playerDamageCooldown    ; Set the damage cooldown
   DEC playerHealth            ; Take damage
+  LDA playerHealth
+  BEQ .longFlash
+  LDA #FLASH_DAMAGE           ; Short flash
+  JMP .doFlash
+.longFlash:
+  LDA #FLASH_DEATH
+.doFlash:
+  STA playerDamageFlash
   JSR DrawPlayerHealth
 .done:
   RTS

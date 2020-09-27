@@ -202,22 +202,17 @@ NMI:                          ; NMI frame interrupt
 .gameLoop:
   LDA fadeCount               ; If we're fading in, do a more limited update
   BNE .fadeInLoop             ; Yes - loop
+  LDA playerHealth
+  BEQ .waitDeadLoop
   ; Not fading, do normal update
-  JSR .testStartPressed
-  CMP #1
-  BNE .testPlayerHealth
-  LDA #GAME_PAUSE
+  JSR .testStartPressed       ; Pause pressed
+  BEQ .runGameLoop            ; No, do normal update
+  LDA #GAME_PAUSE             ; Yes, switch to pause
   STA gamestate
   JSR SetGameState
   JSR DarkenPalette
   RTS
-.testPlayerHealth:
-  LDA playerHealth            ; Check health value
-  BNE .runGameLoop            ; Above 0, continue game
-  LDA #GAME_KILL              ; Equal to 0, kill player
-  STA gamestate
-  JSR SetGameState
-  RTS
+
 .runGameLoop:
   JSR CountPlayerTime
   JSR TestPlayerMove
@@ -229,6 +224,16 @@ NMI:                          ; NMI frame interrupt
   JSR UpdateEnemies
   JSR UpdateEnemyBullets
   JSR DrawScoreUpdate
+  RTS
+
+.waitDeadLoop:
+  JSR CountPlayerTime
+  LDA playerDamageFlash       ; Don't progress until flashing is done
+  BNE .wait                   ; Not yet, wait
+  LDA #GAME_KILL              ; Equal to 0, kill player
+  STA gamestate
+  JSR SetGameState
+.wait:
   RTS
 
 .fadeInLoop:

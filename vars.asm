@@ -52,6 +52,7 @@ enemyBulletStates       .rs 2 ; On/off states for 8 enemy bullets
 playerDodge             .rs 1 ; hi bit is on/off, lo is cooldown
 playerHealth            .rs 1 ; Player health
 playerDamageCooldown    .rs 1 ; Ticks for player damage cooldown
+playerDamageFlash       .rs 1 ; Timer for player damage flash
 fadeTime                .rs 1 ; Timer for use during fades
 fadeCount               .rs 1 ; Counter for use during fades
 

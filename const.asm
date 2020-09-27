@@ -9,6 +9,7 @@ TILE_HALF         = 4
 TILE_WIDTH        = 8
 TILES_PX_3        = 3 * TILE_WIDTH ; 3 tiles high in pixels
 TILES_PX_2        = 2 * TILE_WIDTH ; 2 tiles high in pixels
+PALETTE_BG        = palette + 16
 
 ; Input
 BUTTONA           = %10000000

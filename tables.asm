@@ -151,9 +151,9 @@ scoreKillText:                ; "SCORE:"
 
 defaultPalette:
   ;   Map 1             Map 2                               Hud
-  .db $00,$22,$01,$23,  $00,$13,$01,$23,  $00,$30,$21,$0F,  $00,$20,$16,$04
+  .db $0F,$22,$01,$23,  $0F,$13,$01,$23,  $0F,$30,$21,$0F,  $0F,$20,$16,$04
   ;   Player            Player Bullets    Enemey            Enemy Bullets
-  .db $3E,$06,$30,$08,  $00,$24,$23,$34,  $00,$20,$28,$1D,  $00,$2A,$3A,$3C
+  .db $0F,$06,$30,$08,  $0F,$24,$23,$34,  $0F,$20,$28,$1D,  $0F,$2A,$3A,$3C
 
 ; LOOKUP TABLES
 
