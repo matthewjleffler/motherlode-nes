@@ -16,6 +16,8 @@ PLAYER_SPAWN_Y    = $80
 STARTX            = 11
 STARTY            = 20
 STARTLEN          = 11        ; PRESS START text 11 tiles
+FADESTEPS         = 8
+FADETIME          = 5
 
 ; SUBROUTINES
 
@@ -59,10 +61,57 @@ NMI:                          ; NMI frame interrupt
   RTI                         ; Return from interrupt
 
 .titleLoop:
+  LDA fadeCount               ; Have we started fading?
+  BEQ .testInput              ; No - check input
+; Out transition happening
+  DEC fadeTime
+  LDA fadeTime
+  BEQ .incrementFade
+  JMP .doDarken
+.incrementFade:
+  LDA #FADETIME
+  STA fadeTime
+  INC fadeCount
+  LDA fadeCount
+  CMP #FADESTEPS
+  BEQ .titleLoopDone
+.doDarken:
+  JSR SetDefaultPalette       ; Set default palette
+  LDY fadeCount
+.darkenLoop:
+  JSR DarkenPalette
+  DEY
+  CPY #0
+  BNE .darkenLoop
+; Flicker text
+  LDA animTick                ; Flicker start
+  LSR A
+  AND #FRAME_MASK
+  BEQ .drawStartText
+  JMP .clearStartText
+.titleLoopDone:
+  JMP .startGame
+.testInput:
   JSR .testStartPressed
-  CMP #1
-  BEQ .startGame
-  ; TODO blink press start
+  BEQ .testStartBlink         ; Didn't press start, blink the text
+; Pressed start
+  LDA #1
+  STA fadeCount               ; Start fading
+  LDA #FADETIME
+  STA fadeTime
+  RTS
+.testStartBlink:
+  LDA animTick                ; See if we're on a blink state
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  AND #FRAME_MASK
+  BEQ .drawStartText
+  JMP .clearStartText
+
+.drawStartText:
   LDA #STARTX
   STA startX
   LDA #STARTY
@@ -71,32 +120,33 @@ NMI:                          ; NMI frame interrupt
   STA len
   JSR StartBackgroundUpdate
   LDX #0
-; See if we're on a blink state
-  LDA animTick
-  LSR A
-  LSR A
-  LSR A
-  LSR A
-  LSR A
-  AND #%00000001
-  BEQ .drawStartText
-  JMP .drawBlankText
-.drawStartText:
+.loopDrawStartText:
   LDA pressStartText, X
   JSR AddBackgroundByte
   INX
   CPX #STARTLEN
-  BNE .drawStartText
+  BNE .loopDrawStartText
   RTS
-.drawBlankText:
+
+.clearStartText:
+  LDA #STARTX
+  STA startX
+  LDA #STARTY
+  STA startY
+  LDA #STARTLEN
+  STA len
+  JSR StartBackgroundUpdate
+  LDX #0
+.loopClearStartText:
   LDA #CLEAR_TILE
   JSR AddBackgroundByte
   INX
   CPX #STARTLEN
-  BNE .drawBlankText
+  BNE .loopClearStartText
   RTS
 
 .startGame:
+  JSR SetDefaultPalette
   LDA animTick                ; Init RNG with anim tick
   STA seed
   LDA #PLAYER_SPAWN_X         ; Set up player spawn position

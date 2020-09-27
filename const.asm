@@ -39,6 +39,9 @@ ITEM              = $78       ; Size: 4 * 4     =   8   1 * 4 = 4
 ENEMY0            = $80       ; Size: 4 * 4 * 6 =  96   4 * 6 = 24
                               ;                 = 232         = 58 / 64
 
+; Masks
+FRAME_MASK        = %00000001 ; Low bit to check animation
+
 ; Game state
 GAME_TITLE        = 0
 GAME_RUN          = 1

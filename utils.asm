@@ -75,6 +75,9 @@ ReadControllers:
 ; Sets game state
 ; Expects gamestate to already be set, this just applies the proper other settings
 SetGameState:
+  LDA #0                      ; Clear fade counters when transitioning between
+  STA fadeTime                ; Game states
+  STA fadeCount
   LDA gamestate
   CMP #GAME_TITLE
   BEQ .testGameTitle
@@ -145,6 +148,7 @@ SetGameState:
   LDA #$FF                    ; Clear value
   LDX #0
   STX animTick                ; Clear anim tick too
+  STX enemyAnim               ; Used to fade in/out
 .loopClearSprites:
   STA $0200, X
   INX

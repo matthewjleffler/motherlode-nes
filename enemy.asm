@@ -6,7 +6,6 @@
 ; Masks
 TICKMASK          = %00000111 ; Mask for updating enemy logic
 ENEMYANIMMASK     = %00001111 ; Mask for updating animation
-FRAME_MASK        = %00000001 ; Low bit to check animation
 
 ; Gameplay
 SKEL_DAMAGE_RAD   = 8         ; 8 pixel rad for skeleton damage
