@@ -16,7 +16,7 @@ PLAYER_SPAWN_Y    = $80
 STARTX            = 11
 STARTY            = 20
 STARTLEN          = 11        ; PRESS START text 11 tiles
-FADESTEPS         = 8
+FADESTEPS         = 6
 FADETIME          = 5
 
 ; SUBROUTINES
@@ -146,7 +146,6 @@ NMI:                          ; NMI frame interrupt
   RTS
 
 .startGame:
-  JSR SetDefaultPalette
   LDA animTick                ; Init RNG with anim tick
   STA seed
   LDA #PLAYER_SPAWN_X         ; Set up player spawn position
@@ -194,9 +193,16 @@ NMI:                          ; NMI frame interrupt
   LDA #PLAYER_HEALTH
   STA playerHealth            ; Set player health
   JSR DrawPlayerHealth
+  LDA #FADESTEPS              ; Set up fade in
+  STA fadeCount
+  LDA #FADETIME
+  STA fadeTime
   RTS
 
 .gameLoop:
+  LDA fadeCount               ; If we're fading in, do a more limited update
+  BNE .fadeInLoop             ; Yes - loop
+  ; Not fading, do normal update
   JSR .testStartPressed
   CMP #1
   BNE .testPlayerHealth
@@ -223,6 +229,31 @@ NMI:                          ; NMI frame interrupt
   JSR UpdateEnemies
   JSR UpdateEnemyBullets
   JSR DrawScoreUpdate
+  RTS
+
+.fadeInLoop:
+  DEC fadeTime
+  BNE .fadeInPalette
+  ; Timer ran out, decrement fade count
+  DEC fadeCount
+  LDA fadeCount
+  BEQ .fadeInDone             ; Are we done fading in?
+  LDA #FADETIME               ; No, count another step
+  STA fadeTime
+  JMP .fadeInPalette
+.fadeInDone:
+  JSR SetDefaultPalette       ; Restore any palette changes
+  RTS                         ; Done with the fade entirely, next loop is update
+.fadeInPalette:
+  JSR SetDefaultPalette
+  LDY fadeCount
+.fadeInDarken:
+  JSR DarkenPalette
+  DEY
+  CPY #0
+  BNE .fadeInDarken
+  ; Limited update
+  JSR UpdatePlayerSprites
   RTS
 
 .pauseLoop:

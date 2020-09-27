@@ -228,6 +228,8 @@ TestPlayerSpecial:
   BEQ .doPlayerSpecial
   RTS
 .doPlayerSpecial:
+  LDA #0
+  STA playerHealth
   ; LDA #GAME_KILL
   ; STA gamestate
   ; JSR SetGameState
