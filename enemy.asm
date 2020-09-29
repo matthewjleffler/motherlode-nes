@@ -25,10 +25,13 @@ EN_STATE_SPAWN2   = 2         ; Spawn2
 EN_STATE_DIE1     = 3         ; Die1
 EN_STATE_SKEL     = 10        ; Skeleton
 EN_STATE_HEAD     = 11        ; Head
+EN_STATE_GHOST_R  = 12        ; Ghost Right
+EN_STATE_GHOST_L  = 13        ; Ghost Left
 
 ; Health values
 EN_SKEL_HEALTH    = 10
 EN_HEAD_HEALTH    = 18
+EN_GHOST_HEALTH   = 12
 
 ; Attributes
 ENEMYATT_L        = %00000010
@@ -49,6 +52,10 @@ ENEMY_HEAD10      = $14
 ENEMY_HEAD11      = $15
 ENEMY_HEAD20      = $16
 ENEMY_HEAD21      = $17
+ENEMY_GHOST00     = $1A
+ENEMY_GHOST01     = $1B
+ENEMY_GHOST02     = $1C
+ENEMY_GHOST03     = $1D
 
 ; SUBROUTINES
 
@@ -136,6 +143,10 @@ SetEnemyState:
   BEQ .stateSkel
   CMP #EN_STATE_HEAD
   BEQ .stateHead
+  CMP #EN_STATE_GHOST_R
+  BEQ .stateGhostR
+  CMP #EN_STATE_GHOST_L
+  BEQ .stateGhostL
   RTS                         ; No state matched
 .stateTurnOff:
   JMP SetEnemyStateOff
@@ -149,6 +160,10 @@ SetEnemyState:
   JMP SetEnemyStateSkel
 .stateHead:
   JMP SetEnemyStateHead
+.stateGhostR:
+  JMP SetEnemyStateGhostR
+.stateGhostL:
+  JMP SetEnemyStateGhostL
 
 SetEnemyStateOff:
   JSR SetPointerForEnemy
@@ -225,6 +240,50 @@ SetEnemyStateHead:
   LDA #EN_HEAD_HEALTH
   STA enemyHealth, X
   JSR DrawHeadFrame1
+  RTS
+
+SetEnemyStateGhostR:
+  LDA #0                      ; Moving to right
+  STA enemyVel, X
+  LDA #EN_GHOST_HEALTH
+  STA enemyHealth, X
+  LDA #ENEMY_GHOST00
+  STA spriteFrame+0
+  LDA #ENEMY_GHOST01
+  STA spriteFrame+1
+  LDA #ENEMY_GHOST02
+  STA spriteFrame+2
+  LDA #ENEMY_GHOST03
+  STA spriteFrame+3
+  LDA #ENEMYATT_L
+  STA spriteAttr+0
+  STA spriteAttr+1
+  STA spriteAttr+2
+  STA spriteAttr+3
+  JSR SetPointerForEnemy
+  JSR ApplySpriteSettings
+  RTS
+
+SetEnemyStateGhostL:
+  LDA #8                      ; Moving to left
+  STA enemyVel, X
+  LDA #EN_GHOST_HEALTH
+  STA enemyHealth, X
+  LDA #ENEMY_GHOST01
+  STA spriteFrame+0
+  LDA #ENEMY_GHOST00
+  STA spriteFrame+1
+  LDA #ENEMY_GHOST03
+  STA spriteFrame+2
+  LDA #ENEMY_GHOST02
+  STA spriteFrame+3
+  LDA #ENEMYATT_R
+  STA spriteAttr+0
+  STA spriteAttr+1
+  STA spriteAttr+2
+  STA spriteAttr+3
+  JSR SetPointerForEnemy
+  JSR ApplySpriteSettings
   RTS
 
 DrawSkeletonFrame1:
@@ -389,6 +448,10 @@ UpdateEnemyLoop:
   BEQ .checkStateSkeleton
   CMP #EN_STATE_HEAD
   BEQ .checkStateHead
+  CMP #EN_STATE_GHOST_R
+  BEQ .checkStateGhost
+  CMP #EN_STATE_GHOST_L
+  BEQ .checkStateGhost
 .checkStateOff:
   JMP IncrementEnemyCount     ; Not on, skip enemy
 .checkStateSpawn1:
@@ -401,6 +464,8 @@ UpdateEnemyLoop:
   JMP .stateSkeleton
 .checkStateHead:
   JMP .stateHead
+.checkStateGhost:
+  JMP .stateGhost
 
 ; Actual state implementation
 .stateSpawn1:
@@ -455,7 +520,7 @@ UpdateEnemyLoop:
   JSR StorePlayerPosForSearch
   JSR ManhattanDistance       ; Test if we've hit player
   CMP #SKEL_DAMAGE_RAD
-  BCC .hitPlayer
+  BCC .hitPlayerSkel
 ; Didn't hit player, check for velocity change
   LDA enemyTick, X            ; Did our pathfind tick run out?
   BNE .skelMove               ; No, move with our last velocity
@@ -467,7 +532,7 @@ UpdateEnemyLoop:
 .skelMove:
   JSR MoveEnemy
   JMP .updateLayout
-.hitPlayer:
+.hitPlayerSkel:
   JSR PlayerTakeDamage        ; Deal damage to player
   LDX enemyCount              ; Kill this skeleton
   LDA #0
@@ -518,6 +583,59 @@ UpdateEnemyLoop:
   JSR MoveEnemy
   JMP .updateLayout
 
+.stateGhost:
+  JSR TestEnemyHealth
+  BEQ .testPlayerHitGhost
+  LDX #1                      ; 30 points
+  ; TODO Y can be times?
+  JSR AddScore
+  JSR AddScore
+  JSR AddScore
+  JMP .updateLayout
+.testPlayerHitGhost:
+  LDY positionOffset, X
+  LDA enemyPosX+1, Y          ; Store X pos for atan2
+  STA posX
+  LDA enemyPosY+1, Y          ; Store Y pos for atan2
+  STA posY
+  JSR StorePlayerPosForSearch
+  JSR ManhattanDistance
+  CMP #SKEL_DAMAGE_RAD
+  BCC .hitPlayerGhost
+  JMP .moveGhost
+.hitPlayerGhost:
+  JSR PlayerTakeDamage        ; Deal damage to player
+.moveGhost:
+  LDX enemyCount
+  LDY enemyVel, X             ; Get enemy velocity index
+  LDA enemySlowMoveX, Y       ; Subpixel
+  STA velLo                   ; Velocity Lo
+  LDA enemySlowMoveX+16, Y    ; 16 directions
+  STA velHi                   ; Velocity Hi
+  JSR StoreVelocitySign       ; Store the sign, for subpixel move and dodging
+  LDA #HIGH(enemyPosX)        ; Set pointerSub for player subpixel X
+  STA pointerSubHi
+  LDA #LOW(enemyPosX)
+  CLC
+  ADC positionOffset, X
+  STA pointerSubLo
+  JSR SubPixelMove            ; Do move
+  LDX enemyCount              ; Make sure enemy index is in X
+  LDY positionOffset, X       ; Reset enemy Y position
+  LDA enemySpawnY, X
+  STA enemyPosY+1, Y
+  LDA animTick                ; Get animation tick
+  CLC
+  ADC enemyCount              ; Offset by enemy count
+  JSR DivideBy8
+  AND #TICKMASK               ; Get lower 3 bits, 0-7
+  TAX
+  LDA sinOffsets, X           ; Get sin offset
+  CLC
+  ADC enemyPosY+1, Y          ; Add to the reset Y
+  STA enemyPosY+1, Y          ; Store the result
+  JMP .updateLayout
+
 .updateLayout:
   JSR SetPointerForEnemy
   LDY positionOffset, X       ; Get position index offset for current enemy
@@ -543,7 +661,7 @@ IncrementEnemyCount:
 
 SpawnRandomEnemy:
   JSR RNG
-  JSR DivideMax8
+  JSR DivideMax16
   TAX
   LDA randomEnemyTable, X
   JSR SetEnemyState

@@ -186,16 +186,28 @@ enemySpawnX:
 enemySpawnY:
   .db  7 * TILE_WIDTH, 19 * TILE_WIDTH, 19 * TILE_WIDTH,  9 * TILE_WIDTH, 13 * TILE_WIDTH, 25 * TILE_WIDTH
 
-; 8 random slots
+; 16 random slots
 randomEnemyTable:
   .db EN_STATE_SKEL
   .db EN_STATE_SKEL
   .db EN_STATE_SKEL
   .db EN_STATE_SKEL
   .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_GHOST_L
+  .db EN_STATE_GHOST_L
+  .db EN_STATE_GHOST_L
+  .db EN_STATE_GHOST_R
+  .db EN_STATE_GHOST_R
+  .db EN_STATE_GHOST_R
   .db EN_STATE_HEAD
   .db EN_STATE_HEAD
-  .db EN_STATE_HEAD
+
+; Ghost sin curve offsets
+sinOffsets:
+  .db 00, 01, 02, 03, 04, 03, 02, 01
 
 ; VELOCITY TABLES
 

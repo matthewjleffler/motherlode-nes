@@ -135,6 +135,11 @@ Atan2:
   STA angle
   RTS
 
+DivideBy4:
+  LSR A
+  LSR A
+  RTS
+
 DivideBy8:
 DivideMax32:
   LSR A
