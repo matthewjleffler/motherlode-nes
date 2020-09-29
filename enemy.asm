@@ -544,13 +544,7 @@ IncrementEnemyCount:
 SpawnRandomEnemy:
   JSR RNG
   JSR DivideMax8
-  CMP #2                      ; 2/8 head
-  BCC .spawnHead
-  LDA #EN_STATE_SKEL
-  JMP .doSpawn
-.spawnHead:
-  LDA #EN_STATE_HEAD
-  JMP .doSpawn
-.doSpawn:
+  TAX
+  LDA randomEnemyTable, X
   JSR SetEnemyState
   RTS

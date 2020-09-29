@@ -151,7 +151,7 @@ scoreKillText:                ; "SCORE:"
 
 defaultPalette:
   ;   Map 1             Map 2                               Hud
-  .db $0F,$22,$13,$23,  $0F,$13,$01,$23,  $0F,$30,$21,$0F,  $0F,$20,$16,$04
+  .db $0F,$22,$13,$23,  $0F,$13,$01,$23,  $0F,$30,$21,$0F,  $0F,$20,$16,$08
   ;   Player            Bullets           Enemey1           Enemy2
   .db $0F,$05,$24,$0F,  $0F,$24,$2A,$10,  $0F,$20,$28,$1D,  $0F,$2A,$3A,$3C
 
@@ -185,6 +185,17 @@ enemySpawnX:
 
 enemySpawnY:
   .db  7 * TILE_WIDTH, 19 * TILE_WIDTH, 19 * TILE_WIDTH,  9 * TILE_WIDTH, 13 * TILE_WIDTH, 25 * TILE_WIDTH
+
+; 8 random slots
+randomEnemyTable:
+  .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_SKEL
+  .db EN_STATE_HEAD
+  .db EN_STATE_HEAD
+  .db EN_STATE_HEAD
 
 ; VELOCITY TABLES
 
