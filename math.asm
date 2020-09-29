@@ -180,3 +180,42 @@ Atan2Deg16:
   JSR Atan2
   JSR DivideMax16
   RTS
+
+Times2:
+  ASL A
+  RTS
+
+Times4:
+  ASL A
+  ASL A
+  RTS
+
+Times8:
+  ASL A
+  ASL A
+  ASL A
+  RTS
+
+Times16:
+  ASL A
+  ASL A
+  ASL A
+  ASL A
+  RTS
+
+Times32:
+  ASL A
+  ASL A
+  ASL A
+  ASL A
+  ASL A
+  RTS
+
+Times64:
+  ASL A
+  ASL A
+  ASL A
+  ASL A
+  ASL A
+  ASL A
+  RTS

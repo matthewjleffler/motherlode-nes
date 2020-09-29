@@ -6,7 +6,7 @@
 STATEMASK         = %00000011 ; Low bits for the state of a bullet
 HICLEAR           = %00111111 ; Clear the high state off
 EBULLETCOUNT      = 8         ; Number of bullets to render
-EBULLET_ATTRIB    = %00000011 ; Bullet attribute
+EBULLET_ATTRIB    = %00000001 ; Bullet attribute
 EBULLET_RAD       = 6         ; Distance player can be hit at
 
 ; States
