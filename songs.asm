@@ -14,6 +14,7 @@ song_headers:
   .dw song8_header
   .dw enemy_hit_header
   .dw enemy_die_header
+  .dw title_header
 
 ; SONG0 - silence
 song0_header:
@@ -485,3 +486,90 @@ enemy_die_header:
   .db $80
 enemy_die_noise:
   .db half, $03, endsound
+
+title_header:
+  .db 2                       ; 3 streams
+  .db MUSIC_SQ1               ; First stream
+  .db 1                       ; Status enabled
+  .db SQUARE_1                ; Square 1 channel
+  .db $B0                     ; Initial duty (10)
+  .db ve_vol_chord            ; Volume envelope
+  .dw title_square1           ; Pointer to stream
+  .db 74                      ; Tempo
+  ; .db MUSIC_SQ2               ; Second stream
+  ; .db 1                       ; Status enabled
+  ; .db SQUARE_2                ; Square 2 channel
+  ; .db %10000000               ; Initial duty (10)   ; TODO
+  ; .db ve_chord                ; Volume envelope     ; TODO
+  ; .dw title_square2           ; Pointer to stream
+  ; .db 115                     ; Tempo
+  .db MUSIC_TRI               ; Third stream
+  .db 1                       ; Status enabled
+  .db TRIANGLE                ; Traingle channel
+  .db $80                     ; Turn sound on
+  .db ve_vol_chord            ; Volume up
+  .dw title_tri               ; Pointer to stream
+  .db 74                     ; Tempo
+
+title_square1:
+  .db thirtysecond
+
+  .db set_loop1_counter, 10
+.gs3_1:
+  .db Gs3,  B3, Ds4, loop1
+  .dw .gs3_1
+  .db Gs3,  B3
+
+  .db set_loop1_counter, 10
+.fs3_1:
+  .db Fs3, As3, Cs4, loop1
+  .dw .fs3_1
+  .db Fs3, As3
+
+  .db set_loop1_counter, 10
+.e3_1:
+  .db  E3, Gs3,  B3, loop1
+  .dw .e3_1
+  .db  E3, Gs3
+
+  .db set_loop1_counter, 10
+.cs3_1:
+  .db Cs3,  E3, Gs3, loop1
+  .dw .cs3_1
+  .db Cs3,  E3
+
+  .db set_loop1_counter, 10
+.gs3_2:
+  .db Gs3,  B3, Ds4, loop1
+  .dw .gs3_2
+  .db Gs3,  B3
+
+  .db set_loop1_counter, 10
+.fs3_2:
+  .db Fs3, As3, Cs4, loop1
+  .dw .fs3_2
+  .db Fs3, As3
+
+  .db set_loop1_counter, 10
+.e3_2:
+  .db  E3, Gs3,  B3, loop1
+  .dw .e3_2
+  .db  E3, Gs3
+
+  .db set_loop1_counter, 10
+.fs3_3:
+  .db Fs3, As3, Cs4, loop1
+  .dw .fs3_3
+  .db Fs3, As3
+
+  .db loop
+  .dw title_square1
+
+title_square2:
+
+title_tri:
+  .db eighth
+  .db Fs5, Gs5,  B5, As5, Gs5, Fs5, Gs5, As5
+  .db  B5, As5, Gs5, Fs5, Gs5, As5,  B5, As5
+  .db loop
+  .dw title_tri

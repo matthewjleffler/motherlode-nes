@@ -201,6 +201,7 @@ ve_battlekid_2b     = $08
 ve_drum_decay       = $09
 ve_hit_decay        = $0A
 ve_hit_long_decay   = $0B
+ve_vol_chord        = $0C
 
 volume_envelopes:
   .dw se_ve_1
@@ -215,6 +216,7 @@ volume_envelopes:
   .dw se_drum_decay
   .dw se_hit_decay
   .dw se_hit_long_decay
+  .dw se_vol_chord
 
 note_length_table:
   .db $01                     ; 32nd note
@@ -294,3 +296,6 @@ se_hit_decay:
 
 se_hit_long_decay:
   .db $06, $06, $05, $04, $03, $02, $01, $00, $FF
+
+se_vol_chord:
+  .db 7, $FF                  ; Sustained volume
