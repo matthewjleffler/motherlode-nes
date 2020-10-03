@@ -1,6 +1,20 @@
 ; songs.asm
 ;  contains sfx and sound data
 
+; TODO remove most of these
+song_headers:
+  .dw song0_header            ; this is a silence song.
+  .dw song1_header            ; The Guardian Legend Boss song
+  .dw song2_header            ; a sound effect.  Try playing it over the other songs.
+  .dw song3_header            ; Dragon Warrior overland song
+  .dw song4_header            ; a new song taking advantage of note lengths and rests
+  .dw song5_header            ; another sound effect played at a very fast tempo.
+  .dw song6_header
+  .dw song7_header
+  .dw song8_header
+  .dw enemy_hit_header
+  .dw enemy_die_header
+
 ; SONG0 - silence
 song0_header:
   .db 6                       ; 6 streams
@@ -145,16 +159,16 @@ song3_header:
   .db $B0           ;initial duty (10)
   .db ve_tgl_1      ;volume envelope
   .dw song3_square1 ;pointer to stream
-  .db $40           ;tempo
+  .db $20           ;tempo
   .db MUSIC_SQ2     ;which stream
-  .db $00           ;status byte (stream disabled)
-  .db MUSIC_TRI     ;which stream
-  .db $01           ;status byte (stream enabled)
-  .db TRIANGLE      ;which channel
-  .db $81           ;initial volume (on)
-  .db ve_tgl_2      ;volume envelope
+  .db $01           ;status byte (stream disabled)
+  .db SQUARE_2
+  .db $B0
+  .db ve_tgl_2
   .dw song3_tri     ;pointer to stream
-  .db $40           ;tempo
+  .db $20
+  .db MUSIC_TRI     ;which stream
+  .db $00           ;status byte (stream enabled)
   .db MUSIC_NOI     ;which stream
   .db $00           ;disabled.  Our load routine will skip the
 
@@ -424,14 +438,8 @@ song7_square2:
 
 ; SONG8
 song8_header:
-  .db 4
-  .db MUSIC_SQ1
-  .db 0
-  .db MUSIC_SQ2
-  .db 0
-  .db MUSIC_TRI
-  .db 0
-  .db MUSIC_NOI
+  .db 1
+  .db SFX_1
   .db $01
   .db NOISE
   .db $30
@@ -440,7 +448,7 @@ song8_header:
   .db $4C
 
 song8_noise:
-  .db half                  ;first play through as half notes
+  .db quarter                  ;first play through as half notes
   .db set_loop1_counter, 2  ;play two times
 .loop_point:
   .db $00, $01, $02, $03, $04, $05, $06, $07, $08
@@ -448,7 +456,32 @@ song8_noise:
   .db $10, $11, $12, $13, $14, $15, $16, $17, $18
   .db $19, $1A, $1B, $1C, $1D, $1E, $1F
   .db volume_envelope, ve_drum_decay        ;change to 7-frame decay volume envelope
-  .db quarter                               ;play quarter notes
+  .db eighth                               ;play quarter notes
   .db loop1                                 ;repeat
   .dw .loop_point
   .db endsound
+
+; Song9
+enemy_hit_header:
+  .db 1
+  .db SFX_1
+  .db 1
+  .db NOISE
+  .db $30       ; ??
+  .db ve_hit_decay
+  .dw enemy_hit_noise
+  .db $66
+enemy_hit_noise:
+  .db eighth, $0B, endsound
+
+enemy_die_header:
+  .db 1
+  .db SFX_2
+  .db 1
+  .db NOISE
+  .db 30
+  .db ve_blip_echo
+  .dw enemy_die_noise
+  .db $80
+enemy_die_noise:
+  .db half, $03, endsound

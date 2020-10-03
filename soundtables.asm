@@ -175,19 +175,6 @@ set_note_offset     = $A6
 adjust_note_offset  = $A7
 transpose           = $A8
 
-; Volume envelopes
-; TODO remove these?
-ve_short_staccato   = $00
-ve_fade_in          = $01
-ve_blip_echo        = $02
-ve_tgl_1            = $03
-ve_tgl_2            = $04
-ve_battlekid_1      = $05
-ve_battlekid_1b     = $06
-ve_battlekid_2      = $07
-ve_battlekid_2b     = $08
-ve_drum_decay       = $09
-
 note_table:
   .dw                                                                $07F1, $0780, $0713 ; A1-B1 ($00-$02)
   .dw $06AD, $064D, $05F3, $059D, $054D, $0500, $04B8, $0475, $0435, $03F8, $03BF, $0389 ; C2-B2 ($03-$0E)
@@ -200,6 +187,21 @@ note_table:
   .dw $000C, $000C, $000B, $000A, $000A, $0009, $0008                                    ; C9-F#9 ($57-$5D)
   .dw $0000 ;rest
 
+; Volume envelopes
+; TODO remove these?
+ve_short_staccato   = $00
+ve_fade_in          = $01
+ve_blip_echo        = $02
+ve_tgl_1            = $03
+ve_tgl_2            = $04
+ve_battlekid_1      = $05
+ve_battlekid_1b     = $06
+ve_battlekid_2      = $07
+ve_battlekid_2b     = $08
+ve_drum_decay       = $09
+ve_hit_decay        = $0A
+ve_hit_long_decay   = $0B
+
 volume_envelopes:
   .dw se_ve_1
   .dw se_ve_2
@@ -211,6 +213,8 @@ volume_envelopes:
   .dw se_battlekid_soft
   .dw se_battlekid_soft_long
   .dw se_drum_decay
+  .dw se_hit_decay
+  .dw se_hit_long_decay
 
 note_length_table:
   .db $01                     ; 32nd note
@@ -227,18 +231,6 @@ note_length_table:
   .db $07                     ; modified quarter to fit after d_sixteenth triplets
   .db $14                     ; 2 quarters plus an 8th
   .db $0A
-
-; TODO remove most of these
-song_headers:
-  .dw song0_header            ; this is a silence song.
-  .dw song1_header            ; The Guardian Legend Boss song
-  .dw song2_header            ; a sound effect.  Try playing it over the other songs.
-  .dw song3_header            ; Dragon Warrior overland song
-  .dw song4_header            ; a new song taking advantage of note lengths and rests
-  .dw song5_header            ; another sound effect played at a very fast tempo.
-  .dw song6_header
-  .dw song7_header
-  .dw song8_header
 
 ; Opcode jump table
 sound_opcodes:
@@ -295,3 +287,10 @@ se_battlekid_soft_long:
 se_drum_decay:
   .db $0E, $09, $08, $06, $04, $03, $02, $01, $00
   .db $FF
+
+se_hit_decay:
+  .db $08, $06, $04, $02, $00
+  .db $FF
+
+se_hit_long_decay:
+  .db $06, $06, $05, $04, $03, $02, $01, $00, $FF

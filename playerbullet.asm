@@ -198,6 +198,8 @@ DoPlayerBulletMove:
   BEQ .collision
   JMP .updateLayout           ; No collision
 .hitEnemy:
+  LDA #9
+  JSR SoundLoad
   LDX enemyCount
   DEC enemyHealth, X
 .collision:
