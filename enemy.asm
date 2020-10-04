@@ -67,7 +67,7 @@ TestEnemyHealth:
   LDA #0
   RTS
 .die:
-  LDA #10
+  LDA #SFX_ENEMY_DIE
   JSR SoundLoad
   LDA #EN_STATE_DIE1
   JSR SetEnemyState

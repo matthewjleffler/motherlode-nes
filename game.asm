@@ -152,8 +152,8 @@ NMI:                          ; NMI frame interrupt
   BEQ .startSound
   RTS
 .startSound:
-  LDA #11
-  JSR SoundLoad
+  ; LDA #11
+  ; JSR SoundLoad
   RTS
 
 .clearStartText:

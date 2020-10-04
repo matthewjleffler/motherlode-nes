@@ -102,7 +102,6 @@ SetGameState:
   RTS
 
 .stateRun:
-  ; TODO clear hud - button states, score
   LDA #0
   STA nametable               ; Set nametable to game
   LDA #PAUSELEN               ; Clear Pause text

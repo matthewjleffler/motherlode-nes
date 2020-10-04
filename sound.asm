@@ -379,18 +379,6 @@ se_op_infinite_loop:
   LDY #$FF                    ; Reset Y to loop back to 0
   RTS
 
-se_op_change_ve:
-  LDA [soundPointer], Y       ; Read the arg
-  STA streamVE, X             ; Store value
-  LDA #$00
-  STA streamVEIndex, X        ; Reset the index
-  RTS
-
-se_op_duty:
-  LDA [soundPointer], Y
-  STA streamVolDuty, X
-  RTS
-
 se_op_set_loop1_counter:
   LDA [soundPointer], Y       ; Read the argument (number of loops)
   STA streamLoop1, X          ; Store in the loop counter variable
@@ -403,33 +391,4 @@ se_op_loop1:
   JMP se_op_infinite_loop     ; If not zero, jump back
 .lastIteration:
   INY                         ; Skip first byte of the address
-  RTS
-
-se_op_set_note_offset:
-  LDA [soundPointer], Y       ; Read the argument
-  STA streamNoteOffset, X     ; Set the note offset
-  RTS
-
-se_op_adjust_note_offset:
-  LDA [soundPointer], Y       ; Read the argument
-  CLC
-  ADC streamNoteOffset, X     ; Add to the current offset
-  STA streamNoteOffset, X     ; Save
-  RTS
-
-se_op_transpose:
-  LDA [soundPointer], Y       ; Read lo byte of the pointer to our LUT
-  STA soundPointer2           ; Store pointer
-  INY
-  LDA [soundPointer], Y       ; Read hi byte of the pointer to our LUT
-  STA soundPointer2+1
-  STY soundTemp1              ; Save Y
-  LDA streamLoop1, X          ; Get loop counter
-  TAY
-  DEY                         ; Subtract 1, indexes start at 0
-  LDA [soundPointer2], Y      ; Read a value from the table
-  CLC
-  ADC streamNoteOffset, X     ; Add to the note offset
-  STA streamNoteOffset, X
-  LDY soundTemp1              ; Restore Y
   RTS
