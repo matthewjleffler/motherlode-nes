@@ -99,8 +99,8 @@ InitializeVariables:
   JSR SetDefaultPlayerPalette
   JSR SetDefaultPalette
   JSR SoundInit
-  LDA #MUSIC_TITLE            ; Play the title track
-  JSR SoundLoad
+  ; LDA #MUSIC_TITLE            ; Play the title track
+  ; JSR SoundLoad
   JSR reenableppu             ; Finish setting up palettes, reenable NMI
 
 Forever:

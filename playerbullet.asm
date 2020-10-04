@@ -198,11 +198,15 @@ DoPlayerBulletMove:
   BEQ .collision
   JMP .updateLayout           ; No collision
 .hitEnemy:
-  LDA #SFX_ENEMY_HIT
+  LDA #SFX_BULLET_HIT
   JSR SoundLoad
   LDX enemyCount
   DEC enemyHealth, X
+  JSR HidePlayerBullet
+  RTS
 .collision:
+  LDA #SFX_BULLET_MISS
+  JSR SoundLoad
   JSR HidePlayerBullet        ; We left the screen, bullet is dead
   RTS
 .updateLayout:

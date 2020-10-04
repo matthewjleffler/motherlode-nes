@@ -417,9 +417,13 @@ PlayerTakeDamage:
   DEC playerHealth            ; Take damage
   LDA playerHealth
   BEQ .longFlash
+  LDA #SFX_PLAYER_HURT
+  JSR SoundLoad
   LDA #FLASH_DAMAGE           ; Short flash
   JMP .doFlash
 .longFlash:
+  LDA #SFX_PLAYER_DIE
+  JSR SoundLoad
   LDA #FLASH_DEATH
 .doFlash:
   STA playerDamageFlash

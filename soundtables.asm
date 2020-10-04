@@ -209,11 +209,15 @@ sound_opcodes:
 ve_hit_decay        = $00
 ve_hit_long_decay   = $01
 ve_vol_chord        = $02
+ve_miss_decay       = $03
+ve_rising_decay     = $04
 
 volume_envelopes:
   .dw se_hit_decay
   .dw se_hit_long_decay
   .dw se_vol_chord
+  .dw se_miss_decay
+  .dw se_rising_decay
 
 ; Volume envelopes
 se_hit_decay:
@@ -225,3 +229,9 @@ se_hit_long_decay:
 
 se_vol_chord:
   .db 7, $FF                  ; Sustained volume
+
+se_miss_decay:
+  .db $04, $02, $00, $FF
+
+se_rising_decay:
+  .db $00, $01, $02, $03, $04, $05, $06, $07, $08, $09, $1F, $FF
