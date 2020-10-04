@@ -175,6 +175,7 @@ d_whole             = $8A
 t_quarter           = $8B
 five_eighths        = $8C
 five_sixteenths     = $8D
+three_whole         = $8E
 
 note_length_table:
   .db $01                     ; 32nd note
@@ -190,6 +191,7 @@ note_length_table:
   .db $30                     ; dotted whole note?
   .db $07                     ; modified quarter to fit after d_sixteenth triplets
   .db $14                     ; 2 quarters plus an 8th
+  .db $60                     ; Three whole notes
   .db $0A
 
 ; Opcodes
@@ -211,6 +213,7 @@ ve_hit_long_decay   = $01
 ve_vol_chord        = $02
 ve_miss_decay       = $03
 ve_rising_decay     = $04
+ve_rising_decay_2   = $05
 
 volume_envelopes:
   .dw se_hit_decay
@@ -218,6 +221,7 @@ volume_envelopes:
   .dw se_vol_chord
   .dw se_miss_decay
   .dw se_rising_decay
+  .dw se_rising_decay_2
 
 ; Volume envelopes
 se_hit_decay:
@@ -235,3 +239,6 @@ se_miss_decay:
 
 se_rising_decay:
   .db $00, $01, $02, $03, $04, $05, $06, $07, $08, $09, $1F, $FF
+
+se_rising_decay_2:
+  .db $00, $01, $02, $03, $04, $05, $06, $FF

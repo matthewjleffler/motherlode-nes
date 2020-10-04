@@ -97,11 +97,15 @@ SetGameState:
   JMP .stateKill
 
 .stateTitle:
+  ; LDA #MUSIC_TITLE
+  ; JSR SoundLoad
   LDA #1
   STA nametable               ; Set nametable to title
   RTS
 
 .stateRun:
+  ; LDA #SOUND_SILENT
+  ; JSR SoundLoad
   LDA #0
   STA nametable               ; Set nametable to game
   LDA #PAUSELEN               ; Clear Pause text
@@ -144,6 +148,8 @@ SetGameState:
   RTS
 
 .stateKill:
+  ; LDA #MUSIC_TITLE
+  ; JSR SoundLoad
   LDA #$FF                    ; Clear value
   LDX #0
   STX animTick                ; Clear anim tick too
