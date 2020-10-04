@@ -107,6 +107,8 @@ TestPlayerMove:
   AND #BUTTONB                ; Are we pressing B?
   BEQ .beginMove              ; No - just move
   ; Start dodge
+  LDA #SFX_PLAYER_DODGE
+  JSR SoundLoad
   LDA #$31                    ; Player Dodge Palette Color
   STA playerPalette+0
   LDA #$34
@@ -265,6 +267,8 @@ TestPlayerSpecial:
   BEQ .doPlayerSpecial        ; Yes - do ability
   RTS                         ; No - return
 .doPlayerSpecial:
+  LDA #SFX_PLAYER_ABIL
+  JSR SoundLoad
   LDA #ABILITY_FLASH
   STA monochromeTime
   LDA #1

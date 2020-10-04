@@ -152,7 +152,7 @@ NMI:                          ; NMI frame interrupt
   BEQ .startSound
   RTS
 .startSound:
-  ; LDA #11
+  ; LDA #SFX_PLAYER_ABIL
   ; JSR SoundLoad
   RTS
 

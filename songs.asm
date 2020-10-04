@@ -8,6 +8,8 @@ SFX_BULLET_MISS     = 3
 SFX_ENEMY_DIE       = 4
 SFX_PLAYER_DIE      = 5
 SFX_PLAYER_HURT     = 6
+SFX_PLAYER_DODGE    = 7
+SFX_PLAYER_ABIL     = 8
 
 song_headers:
   .dw silent_header           ; this is a silence song.
@@ -17,6 +19,8 @@ song_headers:
   .dw enemy_die_header
   .dw player_die_header
   .dw player_hurt_header
+  .dw player_dodge_header
+  .dw player_ability_header
 
 ; SONG0 - silence
 silent_header:
@@ -43,21 +47,21 @@ title_header:
   .db $B0                     ; Initial duty (10)
   .db ve_vol_chord            ; Volume envelope
   .dw title_square1           ; Pointer to stream
-  .db 70                      ; Tempo
+  .db 60                      ; Tempo
   .db MUSIC_SQ2               ; Second stream
   .db 1                       ; Status enabled
   .db SQUARE_2                ; Square 2 channel
   .db $B0                     ; Initial duty (10)
   .db ve_vol_chord            ; Volume envelope
   .dw title_square2           ; Pointer to stream
-  .db 70                      ; Tempo
+  .db 60                      ; Tempo
   .db MUSIC_TRI               ; Third stream
   .db 1                       ; Status enabled
   .db TRIANGLE                ; Traingle channel
   .db $80                     ; Turn sound on
   .db ve_vol_chord            ; Volume up
   .dw title_tri               ; Pointer to stream
-  .db 70                     ; Tempo
+  .db 60                     ; Tempo
 
 title_square1:
   .db thirtysecond
@@ -198,3 +202,39 @@ player_hurt_header:
   .db $90
 player_hurt_stream:
   .db quarter, $1C, endsound
+
+; Player dodge sound
+player_dodge_header:
+  .db 1
+  .db SFX_2
+  .db 1
+  .db SQUARE_2
+  .db $B0
+  .db ve_vol_chord
+  .dw player_dodge_stream
+  .db $90
+player_dodge_stream:
+  .db thirtysecond
+  .db set_loop1_counter, 2
+.loop:
+  .db Fs4, Gs4, As4, B4, loop1
+  .dw .loop
+  .db endsound
+
+; Player ability sound
+player_ability_header:
+  .db 1
+  .db SFX_2
+  .db 1
+  .db SQUARE_2
+  .db $B0
+  .db ve_vol_chord
+  .dw player_ability_stream
+  .db $90
+player_ability_stream:
+  .db thirtysecond
+  .db set_loop1_counter, 2
+.loop:
+  .db Fs3, Fs4, Fs5, Fs4, Fs3, Fs4, loop1
+  .dw .loop
+  .db endsound
