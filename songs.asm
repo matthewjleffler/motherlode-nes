@@ -48,20 +48,6 @@ title_header:
   .db ve_vol_chord            ; Volume envelope
   .dw title_square1           ; Pointer to stream
   .db 40                      ; Tempo
-  ; .db MUSIC_SQ2               ; Second stream
-  ; .db 1                       ; Status enabled
-  ; .db SQUARE_2                ; Square 2 channel
-  ; .db $B0                     ; Initial duty (10)
-  ; .db ve_rising_decay_2            ; Volume envelope
-  ; .dw title_square2           ; Pointer to stream
-  ; .db 40                      ; Tempo
-  ; .db MUSIC_TRI               ; Third stream
-  ; .db 1                       ; Status enabled
-  ; .db TRIANGLE                ; Traingle channel
-  ; .db $80                     ; Turn sound on
-  ; .db ve_vol_chord            ; Volume up
-  ; .dw title_tri               ; Pointer to stream
-  ; .db 70                     ; Tempo
 
 title_square1:
   .db thirtysecond
@@ -70,80 +56,44 @@ title_square1:
 .gs3_1:
   .db Gs2,  B2, Ds3, loop1
   .dw .gs3_1
-  ; .db Gs2,  B2
 
   .db set_loop1_counter, 8
 .fs3_1:
   .db Fs2, As2, Cs3, loop1
   .dw .fs3_1
-  ; .db Fs2, As2
 
   .db set_loop1_counter, 8
 .e3_1:
   .db  E2, Gs2,  B2, loop1
   .dw .e3_1
-  ; .db  E2, Gs2
 
   .db set_loop1_counter, 8
 .cs3_1:
   .db Cs2,  E2, Gs2, loop1
   .dw .cs3_1
-  ; .db Cs2,  E2
 
   .db set_loop1_counter, 8
 .gs3_2:
   .db Gs2,  B2, Ds3, loop1
   .dw .gs3_2
-  ; .db Gs2,  B2
 
   .db set_loop1_counter, 8
 .fs3_2:
   .db Fs2, As2, Cs3, loop1
   .dw .fs3_2
-  ; .db Fs2, As2
 
   .db set_loop1_counter, 8
 .e3_2:
   .db  E2, Gs2,  B2, loop1
   .dw .e3_2
-  ; .db  E2, Gs2
 
   .db set_loop1_counter, 8
 .fs3_3:
   .db Fs2, As2, Cs3, loop1
   .dw .fs3_3
-  ; .db Fs2, As2
 
   .db loop
   .dw title_square1
-
-title_square2:
-  .db whole
-  .db REST, REST, REST, REST, REST, REST, REST
-  .db eighth
-  .db REST, REST, REST, REST, REST, REST, REST
-  .db Fs3
-  .db set_loop1_counter, 2
-
-.loop:
-  .db three_whole, Gs3
-  .db whole, Fs3
-  .db loop1
-  .dw .loop
-  .db loop
-  .dw title_square2
-
-title_tri:
-  .db whole, REST, REST, REST, REST, REST, REST, REST, REST
-  .db set_loop1_counter, 4
-.loop:
-  .db eighth
-  .db Fs4, Gs4,  B4, As4, Gs4, Fs4, Gs4, As4
-  .db  B4, As4, Gs4, Fs4, Gs4, As4,  B4, As4
-  .db loop1
-  .dw .loop
-  .db loop
-  .dw title_tri
 
 ; Bullet Hit Sound
 bullet_hit_header:

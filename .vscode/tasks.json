@@ -4,10 +4,18 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "asm",
+      "type": "shell",
+      "command": "nesasm main.asm"
+    },
+    {
       "label": "build",
       "type": "shell",
-      "command": "nesasm main.asm",
+      "command": "mv main.nes motherlode.nes",
       "problemMatcher": [],
+      "dependsOn": [
+        "asm"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
